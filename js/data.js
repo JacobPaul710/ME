@@ -179,14 +179,30 @@ export function saveCustomFood({ name, servingLabel, cal, p, c, f }) {
 
 export const foodLogs = (date) => store.all('foodlog').filter((l) => l.date === date).sort((a, b) => ((a.at || '') < (b.at || '') ? -1 : 1));
 export const dayTotals = (date) => totals(foodLogs(date));
+export const totalsOf = (logs) => totals(logs);
 
-export async function logFood(date, food, amount, unit) {
+export const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner'], ['snacks', 'Snacks']];
+// Default meal from the time of day.
+export function mealNow(d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60;
+  return h < 10.5 ? 'breakfast' : h < 15 ? 'lunch' : h < 20.5 ? 'dinner' : 'snacks';
+}
+export const mealOf = (log) => log.meal || mealNow(new Date(log.at || Date.now()));
+
+export async function updateLog(log, { amount, meal }) {
+  const k = log.amount ? amount / log.amount : 1;
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const label = log.unit === 'g' ? `${amount} g` : log.amountLabel.replace(/^[\d.]+/, String(amount));
+  return store.update(log.id, { amount, meal, amountLabel: label, cal: Math.round(log.cal * k), p: r1(log.p * k), c: r1(log.c * k), f: r1(log.f * k) });
+}
+
+export async function logFood(date, food, amount, unit, meal = mealNow()) {
   const m = macrosFor(food, amount, unit);
   const saved = food.id && store.get(food.id) ? food : findSaved(food);
   if (saved) await store.update(saved.id, { uses: (saved.uses || 0) + 1, lastAmount: +amount, lastUnit: unit });
   return store.put('foodlog', store.newId('log'), {
     date, at: now(), name: food.name, brand: food.brand || '', foodId: saved ? saved.id : null,
-    amount: +amount, unit, amountLabel: amountLabel(food, amount, unit), ...m,
+    amount: +amount, unit, meal, amountLabel: amountLabel(food, amount, unit), ...m,
   });
 }
 export const removeLog = (id) => store.remove(id);
@@ -202,7 +218,7 @@ export function exportRows() {
   const exName = (id) => (store.get(id) || {}).name || '';
   return {
     workouts: allSets().filter((s) => s.done).sort(byDate).map((s) => ({ ...s, exercise: exName(s.exerciseId) })),
-    food: store.all('foodlog').sort(byDate),
+    food: store.all('foodlog').sort(byDate).map((l) => ({ ...l, meal: mealOf(l) })),
     weighins: weighins(),
     checkins: store.all('checkin').sort(byDate),
   };

@@ -16,16 +16,16 @@ function mark(st) {
 }
 const label = (date, st) => `${parse(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: ${st.kind === 'workout' ? `${st.dayType} workout` : NAMES[st.kind]}`;
 
-function weekRow(today) {
+function weekRow(today, onDay) {
   return h('div', { class: 'week' }, data.weekDays(today).map((d) => {
     const st = data.dayStatus(d, today);
     return h('div', { class: 'week-day' },
       h('span', { class: 'sub' }, parse(d).toLocaleDateString('en-US', { weekday: 'narrow' })),
-      h('span', { class: `daymark ${st.kind}`, role: 'img', 'aria-label': label(d, st) }, mark(st)));
+      h('button', { type: 'button', class: `daymark ${st.kind}`, 'aria-label': `${label(d, st)}. Tap to change`, onClick: () => onDay(d) }, mark(st)));
   }));
 }
 
-function month(today) {
+function month(today, onDay) {
   const t = parse(today);
   const first = new Date(t.getFullYear(), t.getMonth(), 1);
   const daysIn = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
@@ -34,7 +34,9 @@ function month(today) {
   for (let n = 1; n <= daysIn; n++) {
     const d = iso(new Date(t.getFullYear(), t.getMonth(), n));
     const st = data.dayStatus(d, today);
-    cells.push(h('span', { class: `calday ${st.kind}`, role: 'img', 'aria-label': label(d, st) }, String(n)));
+    cells.push(st.kind === 'future'
+      ? h('span', { class: 'calday future', 'aria-hidden': 'true' }, String(n))
+      : h('button', { type: 'button', class: `calday ${st.kind}`, 'aria-label': `${label(d, st)}. Tap to change`, onClick: () => onDay(d) }, String(n)));
   }
   return h('div', { class: 'stack tight' },
     h('div', { class: 'sub' }, t.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })),
@@ -45,7 +47,7 @@ const legend = () => h('div', { class: 'legend' },
   [['workout', 'Workout'], ['rest', 'Rest'], ['off', 'Off'], ['missed', 'Not checked in']].map(([k, t]) =>
     h('span', { class: 'legend-item' }, h('span', { class: `daymark mini ${k}`, 'aria-hidden': 'true' }), t)));
 
-export function streakWidget({ current, best }, today) {
+export function streakWidget({ current, best }, today, onDay = () => {}) {
   const next = nextMilestone(current);
   return h('section', { class: 'card streak', 'aria-label': 'Streak' },
     h('div', { class: 'row' },
@@ -54,7 +56,7 @@ export function streakWidget({ current, best }, today) {
         h('div', { class: 'streak-num' }, String(current), h('span', null, ' day streak')),
         h('div', { class: 'sub' }, `${next - current} day${next - current === 1 ? '' : 's'} to ${milestoneName(next)}`)),
       h('div', { class: 'best' }, h('div', { class: 'sub' }, 'Best'), h('div', { class: 'best-num' }, String(best)))),
-    weekRow(today),
-    month(today),
+    weekRow(today, onDay),
+    month(today, onDay),
     legend());
 }

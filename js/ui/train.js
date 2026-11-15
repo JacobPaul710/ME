@@ -154,18 +154,21 @@ function addExerciseSheet(dayType) {
 }
 
 export function renderTrain(root, ctx) {
-  const { today, go } = ctx;
+  const { go } = ctx;
+  // #train/YYYY-MM-DD logs a past day; otherwise today.
+  const past = /^\d{4}-\d{2}-\d{2}$/.test(ctx.sub || '') && ctx.sub < ctx.today;
+  const today = past ? ctx.sub : ctx.today;
   const c = data.checkin(today);
   const dayType = c && c.type === 'exercise' ? c.dayType : null;
   if (!dayType) {
     root.append(header('Workout', nice(today)),
-      card(h('h2', { class: 'card-title' }, "Pick today's workout"),
+      card(h('h2', { class: 'card-title' }, past ? 'Pick the workout for this day' : "Pick today's workout"),
         h('div', { class: 'stack' }, data.DAY_TYPES.map((d) => button(d.later ? `${d.id} (coming later)` : d.id,
           () => data.setCheckin(today, 'exercise', d.id), d.later ? 'block' : 'primary block', { disabled: d.later })))));
     return;
   }
   const last = data.lastDayOfType(dayType, today);
-  root.append(header(`${dayType} day`, last ? `Last ${dayType} day: ${nice(last)} (${ago(last, today)})` : `First ${dayType} day`,
+  root.append(header(`${dayType} day`, (past ? `${nice(today)} · ` : '') + (last ? `Last ${dayType} day: ${nice(last)} (${ago(last, today)})` : `First ${dayType} day`),
     button('Change', () => pickDayType(today, go), 'ghost')));
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));

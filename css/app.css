@@ -167,3 +167,30 @@ button.item { border-left: 0; border-right: 0; border-top: 0; width: 100%; }
 .msg { background: var(--bg); border-radius: 12px; padding: 12px; }
 .msg-title { font-weight: 700; margin-bottom: 4px; }
 .msg p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* account */
+.head-right { gap: 8px; }
+.account-btn { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-weight: 700; font-size: 15px; cursor: pointer; flex: none; }
+.check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: 15px; cursor: pointer; }
+.check { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); margin: 0; }
+
+button.daymark, button.calday { font-family: inherit; cursor: pointer; padding: 0; background-clip: padding-box; }
+button.daymark:not(.workout):not(.rest):not(.off), button.calday:not(.workout):not(.rest):not(.off) { background: transparent; }
+.calday { min-height: 32px; }
+
+.level-badge { gap: 2px; height: 84px; color: var(--accent); }
+.level-badge .level-num { color: var(--text); }
+.level-title { font-size: 18px; font-weight: 800; letter-spacing: 0.02em; }
+
+/* food diary */
+.eq { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.eq-col { text-align: center; flex: 1; }
+.eq-num { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.eq-num.left { color: var(--green); }
+.eq-num.over { color: var(--danger); }
+.eq-op { color: var(--muted); font-size: 20px; }
+.macro { display: flex; flex-direction: column; gap: 6px; }
+.meal-item { gap: 2px; }
+.meal-item-top { display: flex; width: 100%; gap: 12px; }
+.meal-item-top .item-name { flex: 1; min-width: 0; }
+.seg button { padding: 0 4px; }

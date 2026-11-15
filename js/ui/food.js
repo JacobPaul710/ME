@@ -8,8 +8,10 @@ import { startScan } from '../core/scanner.js';
 import * as data from '../data.js';
 
 // Screen state kept between redraws.
-const state = { tab: 'search', q: '', online: [], onlineFor: '', onlineBusy: false, onlineError: '' };
+const state = { meal: data.mealNow(), tab: 'search', q: '', online: [], onlineFor: '', onlineBusy: false, onlineError: '' };
 
+const mealName = (id) => (data.MEALS.find((m) => m[0] === id) || [, 'Snacks'])[1];
+const mealSelect = (value) => h('select', null, data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label)));
 const macroText = (m) => `${fmt(m.cal)} cal · ${fmt(m.p, 1)} g protein · ${fmt(m.c, 1)} g carbs · ${fmt(m.f, 1)} g fat`;
 const sourceLabel = { usda: 'Basic foods', off: 'Online', custom: 'My item' };
 
@@ -19,6 +21,7 @@ export function foodSheet(food, today) {
   const d = defaultAmount(base);
   const amount = numberInput(d.amount, { 'aria-label': 'Amount' });
   const unitSel = h('select', { 'aria-label': 'Unit' }, units(base).map((u) => h('option', { value: u.id, selected: u.id === d.unit }, u.label)));
+  const mealSel = mealSelect(state.meal);
   const preview = h('p', { class: 'num-line' });
   const draw = () => { preview.textContent = macroText(macrosFor(base, amount.value, unitSel.value)); };
   amount.addEventListener('input', draw);
@@ -30,6 +33,7 @@ export function foodSheet(food, today) {
     base.brand ? h('div', { class: 'sub' }, base.brand) : null,
     h('div', { class: 'sub' }, `${perLabel}: ${macroText(base)}`),
     h('div', { class: 'grid2' }, field('Amount', amount), field('Unit', unitSel)),
+    field('Meal', mealSel),
     preview);
 
   const saveBtn = saved
@@ -37,11 +41,12 @@ export function foodSheet(food, today) {
     : button('Save to Frequently used', async () => { await data.saveFood(food); s.close(); toast('Saved to Frequently used'); }, 'block');
 
   const s = sheet(base.name, body, [
-    button('Add to today', async () => {
+    button('Add', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
-      await data.logFood(today, base, +amount.value, unitSel.value);
+      state.meal = mealSel.value;
+      await data.logFood(today, base, +amount.value, unitSel.value, mealSel.value);
       s.close();
-      toast('Added');
+      toast(`Added to ${mealName(mealSel.value)}`);
     }, 'primary block'),
     saveBtn,
   ]);
@@ -60,7 +65,7 @@ export function customSheet(today, prefill = {}) {
     button('Save and add to today', async () => {
       if (!valid()) return;
       const f = await data.saveCustomFood(read());
-      await data.logFood(today, f, 1, 'serving');
+      await data.logFood(today, f, 1, 'serving', state.meal);
       s.close();
       toast('Saved and added');
     }, 'primary block'),
@@ -107,8 +112,8 @@ function foodRow(food, today, quickAdd) {
       h('span', { class: 'item-name' }, food.name),
       h('span', { class: 'sub' }, [food.brand, sourceLabel[food.source], `${fmt(m.cal)} cal`].filter(Boolean).join(' · '))),
     quickAdd ? h('button', { type: 'button', class: 'btn add-btn', 'aria-label': `Add ${food.name}`, onClick: async () => {
-      await data.logFood(today, food, d.amount, d.unit);
-      toast(`Added ${food.name}`);
+      await data.logFood(today, food, d.amount, d.unit, state.meal);
+      toast(`Added ${food.name} to ${mealName(state.meal)}`);
     } }, '+ Add') : null);
 }
 
@@ -150,26 +155,85 @@ function savedPanel(today) {
   return h('div', { class: 'list' }, foods.map((f) => foodRow(f, today, true)));
 }
 
-function logList(today) {
-  const logs = data.foodLogs(today);
-  if (!logs.length) return empty('Nothing logged today.');
-  return h('div', { class: 'list' }, logs.map((l) => h('button', { type: 'button', class: 'item item-main', onClick: () =>
-    confirmSheet('Remove entry?', `${l.name} (${l.amountLabel}, ${fmt(l.cal)} cal)`, 'Remove', () => data.removeLog(l.id)) },
-  h('span', { class: 'item-name' }, l.name),
-  h('span', { class: 'sub' }, `${l.amountLabel} · ${fmt(l.cal)} cal · ${fmt(l.p, 1)} g protein`))));
+const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : 0);
+const pcf = (x) => `P ${fmt(x.p, 1)} · C ${fmt(x.c, 1)} · F ${fmt(x.f, 1)}`;
+
+function editLogSheet(log) {
+  const amount = numberInput(log.amount, { 'aria-label': 'Amount' });
+  const mealSel = mealSelect(data.mealOf(log));
+  const s = sheet(log.name, h('div', { class: 'stack' },
+    h('div', { class: 'sub' }, `${log.amountLabel} · ${fmt(log.cal)} cal · ${pcf(log)}`),
+    h('div', { class: 'grid2' }, field(`Amount (${log.unit === 'g' ? 'grams' : 'servings'})`, amount), field('Meal', mealSel))), [
+    button('Save', async () => {
+      if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
+      await data.updateLog(log, { amount: +amount.value, meal: mealSel.value });
+      s.close();
+    }, 'primary block'),
+    button('Remove', async () => { await data.removeLog(log.id); s.close(); toast('Removed'); }, 'danger block'),
+  ]);
+}
+
+// Every item eaten, grouped by meal, with per-item and per-meal macros.
+export function mealBreakdown(date, { editable = false, onAdd = null } = {}) {
+  const logs = data.foodLogs(date);
+  return h('div', { class: 'stack' }, data.MEALS.map(([id, label]) => {
+    const items = logs.filter((l) => data.mealOf(l) === id);
+    if (!items.length && !editable) return null;
+    const t = data.totalsOf(items);
+    return h('section', { class: 'card meal', 'aria-label': label },
+      h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, label), h('span', { class: 'num' }, `${fmt(t.cal)} cal`)),
+      items.length ? h('div', { class: 'sub' }, pcf(t)) : null,
+      items.length ? h('div', { class: 'list' }, items.map((l) => {
+        const kids = [
+          h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, fmt(l.cal))),
+          h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`),
+        ];
+        return editable
+          ? h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) }, kids)
+          : h('div', { class: 'item item-main meal-item' }, kids);
+      })) : h('p', { class: 'sub', style: 'margin:0' }, 'Nothing yet.'),
+      editable ? button(`+ Add to ${label}`, () => onAdd(id), 'ghost block') : null);
+  }).filter(Boolean));
+}
+
+function summaryCard(date) {
+  const t = data.dayTotals(date);
+  const tg = data.settings().targets;
+  const col = (num, label, cls = '') => h('div', { class: 'eq-col' }, h('div', { class: `eq-num ${cls}` }, num), h('div', { class: 'sub' }, label));
+  const kcalP = t.p * 4, kcalC = t.c * 4, kcalF = t.f * 9, kcal = kcalP + kcalC + kcalF;
+  const macro = (key, label, eaten, kc) => h('div', { class: 'macro' },
+    h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, label),
+      h('span', { class: 'num' }, `${fmt(eaten, 1)}g`, h('span', { class: 'sub' }, tg[key] ? ` / ${fmt(tg[key])}g` : ''))),
+    h('div', { class: 'bar' }, h('i', { style: `width:${tg[key] ? Math.min(100, (eaten / tg[key]) * 100) : 0}%` })),
+    h('div', { class: 'sub' }, `${pct(kc, kcal)}% of calories${tg[key] ? ` · ${fmt(Math.max(0, tg[key] - eaten), 1)}g left` : ''}`));
+  return card(
+    h('h2', { class: 'card-title' }, 'Calories remaining'),
+    tg.cal
+      ? h('div', { class: 'eq' }, col(fmt(tg.cal), 'Goal'), h('span', { class: 'eq-op' }, '−'), col(fmt(t.cal), 'Food'), h('span', { class: 'eq-op' }, '='),
+        col(fmt(tg.cal - t.cal), 'Remaining', tg.cal - t.cal < 0 ? 'over' : 'left'))
+      : h('div', { class: 'eq' }, col(fmt(t.cal), 'Food'), h('p', { class: 'sub', style: 'margin:0' }, 'Set a calorie goal in Settings to see what\'s left.')),
+    macro('p', 'Protein', t.p, kcalP), macro('c', 'Carbs', t.c, kcalC), macro('f', 'Fat', t.f, kcalF));
 }
 
 export function renderFood(root, ctx) {
   const { today } = ctx;
-  const t = data.dayTotals(today);
-  const tg = data.settings().targets;
-  root.append(
-    header('Food', nice(today)),
-    h('section', { class: 'card totals' }, MACROS.map((m) => h('div', { class: 'total' },
-      h('div', { class: 'total-num' }, fmt(t[m.key], m.key === 'cal' ? 0 : 1)),
-      h('div', { class: 'sub' }, `${m.label}${tg[m.key] ? ` / ${fmt(tg[m.key])}${m.unit}` : ''}`)))),
+  const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Add food')),
+    h('div', { class: 'field' }, h('span', null, 'Adding to'), segmented(data.MEALS, state.meal, (v) => { state.meal = v; ctx.rerender(); })),
     h('div', { class: 'grid2' }, button('Scan barcode', () => scanSheet(today)), button('Custom item', () => customSheet(today))),
     segmented([['search', 'Search'], ['saved', 'Frequently used']], state.tab, (v) => { state.tab = v; ctx.rerender(); }),
-    state.tab === 'search' ? searchPanel(today) : savedPanel(today),
-    card(h('h2', { class: 'card-title' }, 'Logged today'), logList(today)));
+    state.tab === 'search' ? searchPanel(today) : savedPanel(today));
+  const onAdd = (meal) => {
+    state.meal = meal;
+    ctx.rerender();
+    requestAnimationFrame(() => {
+      document.getElementById('add-food')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelector('#add-food input[type=search]')?.focus({ preventScroll: true });
+    });
+  };
+  root.append(
+    header('Food', nice(today)),
+    summaryCard(today),
+    mealBreakdown(today, { editable: true, onAdd }),
+    addSection);
 }

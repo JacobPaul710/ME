@@ -128,7 +128,7 @@ async function startApp(s) {
 function showSignIn() {
   tabs.hidden = true;
   const root = h('div', { id: 'view', class: 'stack' });
-  renderSignIn(root, (s) => location.reload(s));
+  renderSignIn(root, () => location.reload());
   app.replaceChildren(root);
 }
 

@@ -9,7 +9,7 @@ import * as data from '../data.js';
 
 const EXPORTS = {
   workouts: ['Workouts', [['date', 'date'], ['day', 'dayType'], ['exercise', 'exercise'], ['set', 'n'], ['weight_lb', 'weight'], ['reps', 'reps'], ['minutes', 'minutes'], ['miles', 'miles'], ['done_at', 'doneAt']]],
-  food: ['Food log', [['date', 'date'], ['name', 'name'], ['brand', 'brand'], ['amount', 'amountLabel'], ['calories', 'cal'], ['protein_g', 'p'], ['carbs_g', 'c'], ['fat_g', 'f']]],
+  food: ['Food log', [['date', 'date'], ['meal', 'meal'], ['name', 'name'], ['brand', 'brand'], ['amount', 'amountLabel'], ['calories', 'cal'], ['protein_g', 'p'], ['carbs_g', 'c'], ['fat_g', 'f']]],
   weighins: ['Weigh-ins', [['date', 'date'], ['weight_lb', 'lb']]],
   checkins: ['Check-ins', [['date', 'date'], ['type', 'type'], ['workout', 'dayType']]],
 };

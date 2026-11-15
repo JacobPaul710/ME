@@ -6,6 +6,7 @@ import { nice } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
 import { weightSummary } from '../logic/stats.js';
 import * as data from '../data.js';
+import { mealBreakdown } from './food.js';
 
 const state = { workoutView: 'date' };
 const signed = (n, d = 1, unit = '') => (n == null ? '—' : `${n > 0 ? '+' : ''}${fmt(n, d)}${unit}`);
@@ -80,10 +81,7 @@ function foodHistory() {
 }
 
 function foodDay(date) {
-  const logs = data.foodLogs(date);
-  sheet(nice(date), h('div', { class: 'list' }, logs.map((l) => h('div', { class: 'item' }, h('div', { class: 'item-main' },
-    h('span', { class: 'item-name' }, l.name),
-    h('span', { class: 'sub' }, `${l.amountLabel} · ${fmt(l.cal)} cal · ${fmt(l.p, 1)} P · ${fmt(l.c, 1)} C · ${fmt(l.f, 1)} F`))))));
+  sheet(nice(date), mealBreakdown(date));
 }
 
 function weightHistory(today) {
