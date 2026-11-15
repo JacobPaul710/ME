@@ -6,7 +6,8 @@ import * as sync from './core/sync.js';
 import { iso } from './logic/dates.js';
 import { milestoneFor } from './logic/streak.js';
 import * as data from './data.js';
-import { celebrate, levelUp, progressNote } from './celebrations.js';
+import { celebrate, levelUp, tierUnlocked } from './celebrations.js';
+import { unlockAudio } from './core/sfx.js';
 import { themeBackground } from './ui/levelThemes.js';
 import { renderSignIn, renderSetupNeeded } from './ui/signin.js';
 import { renderToday } from './ui/today.js';
@@ -91,7 +92,8 @@ function drawTabs() {
   tabs.hidden = false;
 }
 
-// One pop-up at a time: streak milestone, then level-up, then progress note.
+// One pop-up at a time (each with its own sound/voice): streak milestone, then
+// level-up, then gear tier. The others wait for your next action.
 function checkMilestone() {
   if (document.querySelector('.celebrate')) return;
   const today = iso();
@@ -108,10 +110,11 @@ function checkMilestone() {
     data.setLevelSeen(L);
     if (seen > 0) { levelUp(L); return; } // first run: just remember the level
   }
-  const p = data.progressInfo(today);
-  if (p.message && !data.messageShown(p.message.day)) {
-    data.markMessage(p.message.day);
-    progressNote(p.message);
+  const g = data.gearInfo(today);
+  const tier = g.unlocked.find((t) => !data.tierShown(t.id));
+  if (tier) {
+    data.markTier(tier.id);
+    tierUnlocked(tier);
   }
 }
 
@@ -139,6 +142,7 @@ async function startApp(s) {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); sync.syncNow(); } });
   setInterval(() => sync.syncNow(), 60000);
   await sync.syncNow();
+  if (await data.ensureRoutine()) sync.schedule(500); // your routine, loaded once
   checkMilestone();
 }
 
@@ -160,6 +164,8 @@ window.addEventListener('hashchange', () => { closeAllSheets(); render(); });
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
 window.addEventListener('tracker-signed-out', () => location.reload());
 window.addEventListener('tracker-popup-closed', () => setTimeout(checkMilestone, 300));
+
+unlockAudio();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

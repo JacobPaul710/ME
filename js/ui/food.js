@@ -206,13 +206,23 @@ function summaryCard(date) {
       h('span', { class: 'num' }, `${fmt(eaten, 1)}g`, h('span', { class: 'sub' }, tg[key] ? ` / ${fmt(tg[key])}g` : ''))),
     h('div', { class: 'bar' }, h('i', { style: `width:${tg[key] ? Math.min(100, (eaten / tg[key]) * 100) : 0}%` })),
     h('div', { class: 'sub' }, `${pct(kc, kcal)}% of calories${tg[key] ? ` · ${fmt(Math.max(0, tg[key] - eaten), 1)}g left` : ''}`));
-  return card(
+  const burn = data.burned(date);
+  const notes = data.intakeNotes(date);
+  const goal = tg.cal ? tg.cal + burn.kcal : null;
+  return h('div', { class: 'stack' }, card(
     h('h2', { class: 'card-title' }, 'Calories remaining'),
     tg.cal
-      ? h('div', { class: 'eq' }, col(fmt(tg.cal), 'Goal'), h('span', { class: 'eq-op' }, '−'), col(fmt(t.cal), 'Food'), h('span', { class: 'eq-op' }, '='),
-        col(fmt(tg.cal - t.cal), 'Remaining', tg.cal - t.cal < 0 ? 'over' : 'left'))
-      : h('div', { class: 'eq' }, col(fmt(t.cal), 'Food'), h('p', { class: 'sub', style: 'margin:0' }, 'Set a calorie goal in Settings to see what\'s left.')),
-    macro('p', 'Protein', t.p, kcalP), macro('c', 'Carbs', t.c, kcalC), macro('f', 'Fat', t.f, kcalF));
+      ? h('div', { class: 'eq' }, col(fmt(tg.cal), 'Goal'),
+        burn.kcal ? [h('span', { class: 'eq-op' }, '+'), col(fmt(burn.kcal), 'Exercise')] : null,
+        h('span', { class: 'eq-op' }, '−'), col(fmt(t.cal), 'Food'), h('span', { class: 'eq-op' }, '='),
+        col(fmt(goal - t.cal), 'Remaining', goal - t.cal < 0 ? 'over' : 'left'))
+      : h('div', { class: 'eq' }, col(fmt(t.cal), 'Food'), burn.kcal ? col(fmt(burn.kcal), 'Exercise') : null,
+        h('p', { class: 'sub', style: 'margin:0' }, 'Set your targets in Settings to see what\'s left.')),
+    burn.kcal ? h('p', { class: 'sub', style: 'margin:0' }, `Lifting today: about ${burn.minutes} min, ${fmt(burn.kcal)} cal burned (estimate).`) : null,
+    macro('p', 'Protein', t.p, kcalP), macro('c', 'Carbs', t.c, kcalC), macro('f', 'Fat', t.f, kcalF)),
+  notes.length ? h('section', { class: 'card fuel', 'aria-label': 'Training day check' },
+    h('h2', { class: 'card-title' }, 'Fuel for muscle growth'),
+    h('ul', { class: 'fuel-list' }, notes.map((n) => h('li', null, n.text)))) : null);
 }
 
 export function renderFood(root, ctx) {

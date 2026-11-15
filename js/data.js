@@ -2,18 +2,20 @@
 // Screens call these functions and never touch storage directly.
 import * as store from './core/store.js';
 import { qualifyingDates, currentStreak, bestStreak, streakStart } from './logic/streak.js';
-import { sessions, evaluate, working } from './logic/progression.js';
+import { sessions, evaluateSets, working } from './logic/progression.js';
 import { bestSeries, gainPct, averageGain } from './logic/stats.js';
 import { totals, macrosFor, amountLabel } from './logic/nutrition.js';
 import { sameFood } from './logic/foods.js';
 import { totalXP, progress as levelProgress } from './logic/levels.js';
-import { workoutDates, currentMessage } from './logic/progress.js';
+import { workoutDates, gearStatus } from './logic/gear.js';
+import { dailyTargets, workoutMinutes, workoutCalories, intakeCheck } from './logic/targets.js';
+import { seedRecords } from './seed.js';
 import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
-import { addDays } from './logic/dates.js';
+import { addDays, parse, iso } from './logic/dates.js';
 
 export const DAY_TYPES = [
   { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Forearms' },
-  { id: 'Back', later: true }, // placeholder: switch "later" off to enable
+  { id: 'Back' },
 ];
 
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -21,7 +23,7 @@ const byCreated = (a, b) => ((a.created || '') < (b.created || '') ? -1 : 1);
 const now = () => new Date().toISOString();
 
 // ---- settings ----
-const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men', levelTheme: 'parchment', voiceCheers: true };
+const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men', levelTheme: 'parchment', voiceCheers: true, restSeconds: 90, profile: {} };
 export function settings() {
   const s = store.get('settings') || {};
   return { ...DEFAULTS, ...s, targets: { ...DEFAULTS.targets, ...(s.targets || {}) } };
@@ -51,16 +53,17 @@ export const weekDays = (today) => Array.from({ length: 7 }, (_, i) => addDays(t
 
 // ---- level and XP ----
 export function levelInfo(today) {
-  const { total, parts } = totalXP(allSets(), streakInfo(today).dates);
+  const { total, parts } = totalXP(allSets(), streakInfo(today).dates, exercises());
   return { ...levelProgress(total), parts };
 }
 export const levelSeen = () => (store.get('levelseen') || {}).level || 0;
 export const setLevelSeen = (level) => store.put('levelseen', 'levelseen', { level });
 
 // ---- progress messages ----
-export const progressInfo = (today) => currentMessage(workoutDates(allSets()), today);
-export const messageShown = (day) => !!store.get(`progressmsg:${day}`);
-export const markMessage = (day) => store.put('progressmsg', `progressmsg:${day}`, { day });
+// ---- gear tiers ----
+export const gearInfo = (today) => gearStatus(workoutDates(allSets()), today);
+export const tierShown = (id) => !!store.get(`tier:${id}`);
+export const markTier = (id) => store.put('tier', `tier:${id}`, { id });
 
 // ---- strength levels ----
 export const liftFor = (ex) => (ex.standard === 'none' ? null : ex.standard || guessLift(ex.name));
@@ -114,12 +117,48 @@ export function addSet(exId, date, dayType, values) {
 export const updateSet = (id, patch) => store.update(id, patch);
 export const removeSet = (id) => store.remove(id);
 
+// Per-set goals from your sessions before `today` (and your starting numbers, if any).
 export function exerciseStatus(ex, today) {
   const sess = sessions(setsFor(ex.id)).filter((s) => s.date < today);
-  const ev = evaluate(sess, settings().sessionsToAdvance);
+  const ev = evaluateSets(ex, sess, settings().sessionsToAdvance);
   const last = sess[sess.length - 1] || null;
   return { ...ev, last, lastWorking: last ? working(last) : null };
 }
+export const updateExercise = (ex, patch) => store.update(ex.id, patch);
+
+// ---- variations: alternate week to week, you pick which one this week ----
+const weekKey = (date) => { const d = parse(date); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
+export function varPick(key, date) {
+  const wk = weekKey(date);
+  const mine = store.get(`varpick:${key}:${wk}`);
+  if (mine) return mine.n;
+  const earlier = store.all('varpick').filter((r) => r.key === key && r.week < wk).sort((a, b) => (a.week < b.week ? 1 : -1))[0];
+  return earlier ? (earlier.n === 1 ? 2 : 1) : 1;
+}
+export const setVarPick = (key, date, n) => { const wk = weekKey(date); return store.put('varpick', `varpick:${key}:${wk}`, { key, week: wk, n }); };
+
+// ---- your routine (loaded once) ----
+export async function ensureRoutine() {
+  if (store.get('seed:routine-v1')) return false;
+  for (const r of seedRecords()) if (!store.get(r.id)) await store.put('exercise', r.id, r.data);
+  await store.put('seed', 'seed:routine-v1', { at: new Date().toISOString() });
+  return true;
+}
+
+// ---- calories burned and intake check ----
+export function bodyweight() {
+  return (weighins().pop() || {}).lb || +settings().profile.weightLb || null;
+}
+export function burned(date) {
+  const done = setsOn(date).filter((s) => s.done && s.doneAt);
+  const minutes = workoutMinutes(done.map((s) => s.doneAt), settings().restSeconds);
+  return { minutes, kcal: workoutCalories(minutes, bodyweight()) };
+}
+export function intakeNotes(date) {
+  const trained = setsOn(date).some((s) => s.done);
+  return intakeCheck({ eaten: dayTotals(date), targets: settings().targets, burned: burned(date).kcal, trained, weightLb: bodyweight() });
+}
+export const calculateTargets = (profile) => dailyTargets({ ...profile, weightLb: +profile.weightLb || bodyweight() });
 
 export function lastDayOfType(dt, today) {
   const ds = allSets().filter((s) => s.done && s.dayType === dt && s.date < today).map((s) => s.date);
@@ -218,7 +257,7 @@ export function foodDays() {
 export function exportRows() {
   const exName = (id) => (store.get(id) || {}).name || '';
   return {
-    workouts: allSets().filter((s) => s.done).sort(byDate).map((s) => ({ ...s, exercise: exName(s.exerciseId) })),
+    workouts: allSets().filter((s) => s.done).sort(byDate).map((s) => ({ ...s, exercise: exName(s.exerciseId), reps: s.reps ?? '' })),
     food: store.all('foodlog').sort(byDate).map((l) => ({ ...l, meal: mealOf(l) })),
     weighins: weighins(),
     checkins: store.all('checkin').sort(byDate),

@@ -3,6 +3,21 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.11.1 (ME patch 6)
+- 3.11.1 New home screen icon: crossed swords.
+- 3.11.0 Rest timer between sets (1 to 3 minutes, set on the Workout tab).
+- 3.10.0 Back day turned on, and your routine loaded (Push, Pull, Legs, Back, Forearms) with your current numbers.
+- 3.9.0 Muscle groups on workout days, and weekly variations (pick Var 1 or Var 2 each week).
+- 3.8.0 Left and right reps counted separately (forearms).
+- 3.7.0 Notes on each exercise.
+- 3.6.0 A rep goal for each set, and each exercise's own rep range.
+- 3.5.0 Workout calories added to the day's food goal, with a "Fuel for muscle growth" check.
+- 3.4.0 Target calculator from your details (Mifflin-St Jeor).
+- 3.3.0 Hidden check-for-updates tap under the version number.
+- 3.2.0 Sound effects and voice prompts for level-ups, streak milestones and gear tiers, one at a time.
+- 3.1.0 Gear tiers: real-life body changes unlocked by staying at 75%+ of planned workouts (replace progress notes).
+- 3.0.0 Level system rework: levels 1 to 126 (about 2 years), XP that grows with the weight lifted, a small bonus per set, and bonuses that scale with your level.
+
 ## 2.13.0 (ME patch 5)
 - 2.13.0 Voice cheers: a random clip from audio/cheers plays when you finish a set (on/off in Settings).
 - 2.12.0 Earthquake: the screen shakes when you complete a set (Android phones also buzz).

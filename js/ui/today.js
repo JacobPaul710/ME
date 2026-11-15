@@ -113,25 +113,28 @@ export function levelCardView(L, theme) {
         h('div', { class: 'level-title' }, `Level ${L.level}`),
         h('div', { class: 'bar xp' }, h('i', { style: `width:${L.pct}%` })),
         h('div', { class: 'row prog-top level-xp' }, h('span', { class: 'grow' }, `${fmt(L.xp)} XP`),
-          h('span', null, L.level >= 99 ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)))));
+          h('span', null, L.level >= L.max ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)))));
 }
 
 export function levelCard(today) {
   return levelCardView(data.levelInfo(today), data.settings().levelTheme);
 }
 
-function progressCard(today) {
-  const p = data.progressInfo(today);
-  if (!p.start) return null;
+// Gear tiers: real-life changes unlocked by consistent training.
+function gearCard(today) {
+  const g = data.gearInfo(today);
+  if (!g.start) return null;
+  const pct = Math.round(g.pct * 100);
   return card(
-    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Consistency'), h('span', { class: 'sub' }, 'Push, Pull, Legs · last 30 days')),
-    h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, 'Workout days'), h('span', { class: 'num' }, `${p.done} `, h('span', { class: 'sub' }, `/ ${p.goal} goal`))),
-    h('div', { class: `bar${p.on ? ' good' : ''}` }, h('i', { style: `width:${Math.min(100, (p.done / p.goal) * 100)}%` })),
-    p.message
-      ? h('div', { class: 'msg' }, h('div', { class: 'msg-title' }, p.message.title), h('p', null, p.message.text))
-      : h('p', { class: 'sub' }, p.on
-        ? `Your first progress note unlocks ${p.next ? `on day ${p.next.day}` : 'soon'}.`
-        : `Get to ${p.goal} workout days to keep your progress notes coming.`));
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Gear'), h('span', { class: 'sub' }, g.current ? `${g.current.name} tier` : 'No tier yet')),
+    h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, 'Workouts done since you started'),
+      h('span', { class: 'num' }, `${pct}% `, h('span', { class: 'sub' }, '/ 75% needed'))),
+    h('div', { class: `bar${g.on ? ' good' : ''}` }, h('i', { style: `width:${Math.min(100, (g.pct / 0.75) * 100)}%` })),
+    h('p', { class: 'sub', style: 'margin:0' }, `${g.done} of ${g.planned} planned workouts (5 a week; Push, Pull, Legs and Back count).`),
+    g.current ? h('div', { class: 'msg' }, h('div', { class: 'msg-title' }, g.current.title), h('p', null, g.current.text)) : null,
+    g.next ? h('p', { class: 'sub', style: 'margin:0' }, g.on
+      ? `Next: ${g.next.name} tier in ${g.next.day - g.daysIn} day${g.next.day - g.daysIn === 1 ? '' : 's'}.`
+      : `Get back to 75% to unlock tiers. Next: ${g.next.name} at day ${g.next.day}.`) : null);
 }
 
 // Small, out-of-the-way account button: shows who's signed in, with Sign out.
@@ -152,6 +155,6 @@ export function renderToday(root, ctx) {
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),
     weighCard(today, go),
-    progressCard(today),
+    gearCard(today),
     foodCard(today, go)].filter(Boolean));
 }

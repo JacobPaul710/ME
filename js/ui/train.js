@@ -2,21 +2,22 @@ import { h } from './dom.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
 import { nice, ago, short } from '../logic/dates.js';
-import { XP } from '../logic/levels.js';
+import { XP, repXP } from '../logic/levels.js';
 import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
 import { cheer } from '../core/cheers.js';
+import { startRest, REST_CHOICES } from './restTimer.js';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(+v) ? null : +v);
 
-// Rows to show before anything is logged today: last session's sets, or blanks.
+// Rows to show before anything is logged today: where each set left off, or blanks.
 function plan(ex, st) {
-  const cardio = ex.type === 'cardio';
-  const prev = st.last ? st.last.sets : [];
-  if (prev.length) {
-    return prev.map((s, i) => ({ n: i + 1, weight: s.weight ?? null, reps: s.reps ?? null, minutes: s.minutes ?? null, miles: s.miles ?? null, done: false, virtual: true }));
+  if (ex.type === 'cardio') {
+    const prev = st.last ? st.last.sets : [];
+    return (prev.length ? prev : [{}]).map((s, i) => ({ n: i + 1, minutes: s.minutes ?? null, miles: s.miles ?? null, done: false, virtual: true }));
   }
-  return Array.from({ length: cardio ? 1 : 3 }, (_, i) => ({ n: i + 1, weight: null, reps: null, minutes: null, miles: null, done: false, virtual: true }));
+  const src = st.sets.length ? st.sets : [{}, {}, {}];
+  return src.map((s, i) => ({ n: i + 1, weight: s.weight ?? null, reps: s.reps ?? null, repsR: s.repsR ?? null, repsL: s.repsL ?? null, done: false, virtual: true }));
 }
 
 function infoLine(ex, st) {
@@ -25,18 +26,25 @@ function infoLine(ex, st) {
     const s = st.last.sets[0] || {};
     return [h('span', { class: 'chip' }, `Last: ${s.minutes ?? '—'} min${s.miles ? `, ${s.miles} mi` : ''} · ${short(st.last.date)}`)];
   }
-  const out = [
-    h('span', { class: 'chip strong' }, `Goal ${st.goal} reps`),
-    h('span', { class: 'chip' }, `In a row ${st.count}/${st.needed}`),
+  return [
+    h('span', { class: 'chip' }, `Rep range ${st.start}${st.top !== st.start ? `–${st.top}` : ''}`),
+    h('span', { class: 'chip' }, st.last ? `Last: ${short(st.last.date)}` : ex.baseline ? 'Last: from your sheet' : 'No previous session'),
   ];
-  if (st.lastWorking) out.push(h('span', { class: 'chip' }, `Last: ${st.lastWorking.weight} lb × ${st.lastWorking.reps.join(', ')} · ${short(st.last.date)}`));
-  else out.push(h('span', { class: 'chip' }, 'No previous session'));
-  return out;
+}
+
+// Under each set: its goal, sessions hit, and last time's reps with the change.
+function setMeta(ex, st, i) {
+  const s = st.sets[i];
+  if (!s) return `Goal ${st.start}`;
+  const last = s.repsR != null || s.repsL != null ? `R ${s.repsR ?? '—'} / L ${s.repsL ?? '—'}` : s.reps != null ? `${s.reps}` : '—';
+  const ch = s.change ? ` (${s.change > 0 ? '+' : ''}${s.change})` : '';
+  return `Goal ${s.goal} · hit ${s.hits}/${st.needed} · last ${s.weight ?? '—'} lb × ${last}${ch}`;
 }
 
 function exerciseCard(ex, dayType, today) {
   const st = data.exerciseStatus(ex, today);
   const cardio = ex.type === 'cardio';
+  const sides = !!ex.sides && !cardio;
   let rows = data.todaysSets(ex.id, today);
   const isVirtual = !rows.length;
   if (isVirtual) rows = plan(ex, st);
@@ -61,45 +69,70 @@ function exerciseCard(ex, dayType, today) {
     return data.updateSet(id, patch);
   };
 
-  const rowEl = (row) => {
-    const a = cardio
-      ? numberInput(row.minutes, { 'aria-label': `Set ${row.n} minutes`, placeholder: 'min' })
-      : numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
-    const b = cardio
-      ? numberInput(row.miles, { 'aria-label': `Set ${row.n} miles (optional)`, placeholder: 'mi' })
-      : numberInput(row.reps, { 'aria-label': `Set ${row.n} reps`, placeholder: 'reps', inputmode: 'numeric', step: '1' });
-    const values = () => (cardio ? { minutes: num(a.value), miles: num(b.value) } : { weight: num(a.value), reps: num(b.value) });
-    a.addEventListener('change', () => commit(row, values()));
-    b.addEventListener('change', () => commit(row, values()));
+  const rowEl = (row, i) => {
+    let inputs, values, ready;
+    if (cardio) {
+      const a = numberInput(row.minutes, { 'aria-label': `Set ${row.n} minutes`, placeholder: 'min' });
+      const b = numberInput(row.miles, { 'aria-label': `Set ${row.n} miles (optional)`, placeholder: 'mi' });
+      inputs = [a, b];
+      values = () => ({ minutes: num(a.value), miles: num(b.value) });
+      ready = (v) => v.minutes > 0 || 'Enter minutes first';
+    } else if (sides) {
+      const w = numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
+      const r = numberInput(row.repsR, { 'aria-label': `Set ${row.n} right reps`, placeholder: 'R', inputmode: 'numeric', step: '1' });
+      const l = numberInput(row.repsL, { 'aria-label': `Set ${row.n} left reps`, placeholder: 'L', inputmode: 'numeric', step: '1' });
+      inputs = [w, r, l];
+      values = () => {
+        const R = num(r.value), L = num(l.value);
+        return { weight: num(w.value), repsR: R, repsL: L, reps: R != null && L != null ? Math.min(R, L) : null };
+      };
+      ready = (v) => (v.repsR > 0 && v.repsL > 0) || 'Enter right and left reps first';
+    } else {
+      const w = numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
+      const r = numberInput(row.reps, { 'aria-label': `Set ${row.n} reps`, placeholder: 'reps', inputmode: 'numeric', step: '1' });
+      inputs = [w, r];
+      values = () => ({ weight: num(w.value), reps: num(r.value) });
+      ready = (v) => v.reps > 0 || 'Enter reps first';
+    }
+    for (const el of inputs) el.addEventListener('change', () => commit(row, values()));
     const toggle = async () => {
       const v = values();
       if (row.done) { await commit(row, { ...v, done: false, doneAt: null }); return; }
-      if (cardio ? !(v.minutes > 0) : !(v.reps > 0)) { toast(cardio ? 'Enter minutes first' : 'Enter reps first'); return; }
+      const ok = ready(v);
+      if (ok !== true) { toast(ok); return; }
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
-      if (!cardio) toast(`+${Math.round(v.reps) * XP.rep} XP`);
+      startRest(data.settings().restSeconds || 90);
+      if (!cardio) {
+        const reps = sides ? (v.repsR + v.repsL) / 2 : v.reps;
+        toast(`+${Math.round(reps * repXP(v.weight, ex.repTop) + XP.setBonus)} XP`);
+      }
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
-    return h('div', { class: `set-row${row.done ? ' done' : ''}` },
-      light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), a, b, del);
+    return h('div', { class: 'set-wrap' },
+      h('div', { class: `set-row${sides ? ' sides' : ''}${row.done ? ' done' : ''}` },
+        light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
+      cardio ? null : h('div', { class: 'set-meta' }, setMeta(ex, st, i)));
   };
 
   const addSet = async () => {
     const lastRow = rows[rows.length - 1] || {};
     const n = (lastRow.n || 0) + 1;
-    const vals = { n, weight: lastRow.weight ?? null, reps: lastRow.reps ?? null, minutes: lastRow.minutes ?? null, miles: lastRow.miles ?? null, done: false };
+    const vals = { n, weight: lastRow.weight ?? null, reps: lastRow.reps ?? null, repsR: lastRow.repsR ?? null, repsL: lastRow.repsL ?? null, minutes: lastRow.minutes ?? null, miles: lastRow.miles ?? null, done: false };
     if (isVirtual) await ensureMade();
     await data.addSet(ex.id, today, dayType, vals);
   };
 
+  const heads = cardio ? ['Minutes', 'Miles'] : sides ? ['Weight (lb)', 'Right', 'Left'] : ['Weight (lb)', 'Reps'];
   return card(
     h('div', { class: 'row' },
       h('h2', { class: 'card-title grow' }, ex.name),
-      h('button', { type: 'button', class: 'btn ghost', 'aria-label': `Options for ${ex.name}`, onClick: () => exerciseMenu(ex, dayType) }, 'Edit')),
+      h('button', { type: 'button', class: 'btn ghost', 'aria-label': `Edit ${ex.name}`, onClick: () => exerciseMenu(ex, dayType) }, 'Edit')),
+    ex.notes ? h('p', { class: 'ex-notes' }, ex.notes) : null,
     h('div', { class: 'chips' }, infoLine(ex, st)),
-    !cardio && st.ready ? h('div', { class: 'banner' }, `You hit ${st.goal} reps ${st.needed} times in a row. Go up in weight; your goal goes back to 10.`) : null,
-    h('div', { class: 'set-row head', 'aria-hidden': 'true' }, h('span'), h('span', null, cardio ? 'Minutes' : 'Weight (lb)'), h('span', null, cardio ? 'Miles' : 'Reps'), h('span')),
+    !cardio && st.ready ? h('div', { class: 'banner' }, `Every set hit ${st.top} reps ${st.needed} sessions in a row. Go up in weight; goals reset to ${st.start}.`) : null,
+    h('div', { class: `set-row head${sides ? ' sides' : ''}`, 'aria-hidden': 'true' }, h('span'), heads.map((t) => h('span', null, t)), h('span')),
     rows.map(rowEl),
     button('+ Add set', addSet, 'block'));
 }
@@ -117,16 +150,28 @@ function quake() {
 
 function exerciseMenu(ex, dayType) {
   const name = h('input', { type: 'text', value: ex.name });
+  const notes = h('textarea', { rows: '3', placeholder: 'Setup, form cues, machine settings…' });
+  notes.value = ex.notes || '';
+  const group = h('input', { type: 'text', value: ex.group || '', placeholder: 'e.g. Chest', list: 'groups' });
+  const groups = h('datalist', { id: 'groups' }, ['Chest', 'Shoulders', 'Triceps', 'Biceps', 'Back', 'Legs', 'Forearms', 'Core'].map((g) => h('option', { value: g })));
+  const rs = numberInput(ex.repStart ?? 10, { inputmode: 'numeric', step: '1', min: '1' });
+  const rt = numberInput(ex.repTop ?? 12, { inputmode: 'numeric', step: '1', min: '1' });
+  const sides = h('input', { type: 'checkbox', class: 'check', checked: !!ex.sides });
   const current = data.liftFor(ex) || '';
   const std = h('select', null, h('option', { value: '' }, 'None'),
     Object.entries(LIFTS).map(([k, l]) => h('option', { value: k, selected: k === current }, l.label)));
-  const body = h('div', { class: 'stack' }, field('Name', name),
-    ex.type === 'cardio' ? null : field('Strength level based on', std));
+  const strength = ex.type !== 'cardio';
+  const body = h('div', { class: 'stack' }, field('Name', name), field('Notes', notes), field('Muscle group', group), groups,
+    strength ? h('div', { class: 'grid2' }, field('Rep goal starts at', rs), field('Rep goal tops out at', rt)) : null,
+    strength ? h('label', { class: 'check-row' }, sides, h('span', null, 'Count left and right reps separately')) : null,
+    strength ? field('Strength level based on', std) : null);
   const s = sheet(ex.name, body, [
     button('Save', async () => {
-      if (!name.value.trim()) return;
-      await data.renameExercise(ex, name.value);
-      if (ex.type !== 'cardio' && std.value !== current) await data.setStandard(data.exercise(ex.id), std.value);
+      if (!name.value.trim()) { toast('Enter a name'); return; }
+      const start = Math.max(1, Math.round(+rs.value || 10));
+      const patch = { name: name.value.trim(), notes: notes.value.trim(), group: group.value.trim() || null };
+      if (strength) Object.assign(patch, { repStart: start, repTop: Math.max(start, Math.round(+rt.value || start)), sides: sides.checked, standard: std.value || 'none' });
+      await data.updateExercise(ex, patch);
       s.close();
     }, 'primary block'),
     button(`Remove from ${dayType} day`, () => {
@@ -167,6 +212,35 @@ function addExerciseSheet(dayType) {
   const s = sheet(`Add to ${dayType} day`, body);
 }
 
+// Exercises grouped by muscle group; variations show as one card with a picker.
+function dayBlocks(exs, dayType, today, root) {
+  const order = [];
+  const byGroup = new Map();
+  for (const ex of exs) {
+    const g = ex.group || '';
+    if (!byGroup.has(g)) { byGroup.set(g, []); order.push(g); }
+    byGroup.get(g).push(ex);
+  }
+  for (const g of order) {
+    if (g && order.length > 1) root.append(h('h3', { class: 'group-head' }, g));
+    const seen = new Set();
+    for (const ex of byGroup.get(g)) {
+      const key = ex.variant && ex.variant.key;
+      if (!key) { root.append(exerciseCard(ex, dayType, today)); continue; }
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const options = exs.filter((e) => e.variant && e.variant.key === key).sort((a, b) => a.variant.n - b.variant.n);
+      if (options.length === 1) { root.append(exerciseCard(options[0], dayType, today)); continue; }
+      const pick = data.varPick(key, today);
+      const chosen = options.find((e) => e.variant.n === pick) || options[0];
+      root.append(h('div', { class: 'stack tight var-pick' },
+        h('div', { class: 'sub' }, 'This week\'s variation'),
+        segmented(options.map((e) => [e.variant.n, `Var ${e.variant.n}: ${e.name}`]), chosen.variant.n, (n) => data.setVarPick(key, today, n))));
+      root.append(exerciseCard(chosen, dayType, today));
+    }
+  }
+}
+
 export function renderTrain(root, ctx) {
   const { go } = ctx;
   // #train/YYYY-MM-DD logs a past day; otherwise today.
@@ -182,10 +256,14 @@ export function renderTrain(root, ctx) {
     return;
   }
   const last = data.lastDayOfType(dayType, today);
+  const rest = h('select', { 'aria-label': 'Rest between sets' },
+    REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
+  rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
   root.append(header(`${dayType} day`, (past ? `${nice(today)} · ` : '') + (last ? `Last ${dayType} day: ${nice(last)} (${ago(last, today)})` : `First ${dayType} day`),
-    button('Change', () => pickDayType(today, go), 'ghost')));
+    button('Change', () => pickDayType(today, go), 'ghost')),
+    h('div', { class: 'row rest-pick' }, h('span', { class: 'grow' }, 'Rest between sets'), rest));
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
-  for (const ex of exs) root.append(exerciseCard(ex, dayType, today));
+  dayBlocks(exs, dayType, today, root);
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
 }

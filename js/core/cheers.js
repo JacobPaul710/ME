@@ -1,4 +1,5 @@
 // Voice cheers: plays a random clip from audio/cheers/ when a set is completed.
+import { track } from './sfx.js';
 let clips = null;
 let last = null;
 
@@ -19,5 +20,6 @@ export async function cheer() {
   const pool = all.length > 1 ? all.filter((f) => f !== last) : all; // don't repeat the same clip twice in a row
   last = pool[Math.floor(Math.random() * pool.length)];
   const audio = new Audio(`audio/cheers/${last}`);
+  track(audio);
   try { await audio.play(); return true; } catch { return false; }
 }
