@@ -17,7 +17,7 @@ const EXPORTS = {
 async function exportCSV(key) {
   const [label, cols] = EXPORTS[key];
   const text = toCSV(data.exportRows()[key], cols);
-  const name = `tracker-${key}-${iso()}.csv`;
+  const name = `me-${key}-${iso()}.csv`;
   const file = new File([text], name, { type: 'text/csv' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], title: label }); return; } catch (e) { if (e.name === 'AbortError') return; }
@@ -34,10 +34,11 @@ export function renderSettings(root, ctx) {
   const s = data.settings();
   const inputs = Object.fromEntries(MACROS.map((m) => [m.key, numberInput(s.targets[m.key], { 'aria-label': `${m.label} target` })]));
   const sessions = numberInput(s.sessionsToAdvance, { inputmode: 'numeric', step: '1', min: '1', 'aria-label': 'Sessions in a row' });
+  const sexSel = h('select', null, h('option', { value: 'men', selected: s.standards !== 'women' }, 'Men'), h('option', { value: 'women', selected: s.standards === 'women' }, 'Women'));
   const save = async () => {
     const targets = Object.fromEntries(MACROS.map((m) => [m.key, inputs[m.key].value === '' ? null : Math.max(0, +inputs[m.key].value)]));
     const n = Math.max(1, Math.round(+sessions.value || 4));
-    await data.saveSettings({ ...s, targets, sessionsToAdvance: n });
+    await data.saveSettings({ ...s, targets, sessionsToAdvance: n, standards: sexSel.value });
     toast('Settings saved');
   };
   const user = session()?.user;
@@ -47,6 +48,8 @@ export function renderSettings(root, ctx) {
       h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), inputs[m.key])))),
     card(h('h2', { class: 'card-title' }, 'Rep goal'),
       field('Sessions in a row before the rep goal goes up', sessions)),
+    card(h('h2', { class: 'card-title' }, 'Strength levels'),
+      field('Compare with standards for', sexSel)),
     button('Save settings', save, 'primary block'),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),
       h('div', { class: 'grid2' }, Object.entries(EXPORTS).map(([k, [label]]) => button(label, () => exportCSV(k))))),

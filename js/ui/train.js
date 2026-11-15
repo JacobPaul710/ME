@@ -2,6 +2,8 @@ import { h } from './dom.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
 import { nice, ago, short } from '../logic/dates.js';
+import { XP } from '../logic/levels.js';
+import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(+v) ? null : +v);
@@ -73,6 +75,7 @@ function exerciseCard(ex, dayType, today) {
       if (row.done) { await commit(row, { ...v, done: false, doneAt: null }); return; }
       if (cardio ? !(v.minutes > 0) : !(v.reps > 0)) { toast(cardio ? 'Enter minutes first' : 'Enter reps first'); return; }
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
+      if (!cardio) toast(`+${Math.round(v.reps) * XP.rep} XP`);
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: `set-row${row.done ? ' done' : ''}` },
@@ -99,11 +102,17 @@ function exerciseCard(ex, dayType, today) {
 }
 
 function exerciseMenu(ex, dayType) {
-  const name = h('input', { type: 'text', value: ex.name, 'aria-label': 'Exercise name' });
-  const s = sheet(ex.name, field('Name', name), [
-    button('Save name', async () => {
+  const name = h('input', { type: 'text', value: ex.name });
+  const current = data.liftFor(ex) || '';
+  const std = h('select', null, h('option', { value: '' }, 'None'),
+    Object.entries(LIFTS).map(([k, l]) => h('option', { value: k, selected: k === current }, l.label)));
+  const body = h('div', { class: 'stack' }, field('Name', name),
+    ex.type === 'cardio' ? null : field('Strength level based on', std));
+  const s = sheet(ex.name, body, [
+    button('Save', async () => {
       if (!name.value.trim()) return;
       await data.renameExercise(ex, name.value);
+      if (ex.type !== 'cardio' && std.value !== current) await data.setStandard(data.exercise(ex.id), std.value);
       s.close();
     }, 'primary block'),
     button(`Remove from ${dayType} day`, () => {

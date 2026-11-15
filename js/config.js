@@ -1,6 +1,13 @@
-// Fill these two in from your Supabase project:
-// Project Settings → API Keys (Publishable key) and Project Settings → Data API (Project URL).
-export const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-export const SUPABASE_KEY = 'YOUR-PUBLISHABLE-KEY';
+// Firebase project "ME" (these values are meant to be public; security comes from firestore.rules).
+export const FIREBASE = {
+  apiKey: 'AIzaSyDd4O8cvXkhmOCGIATYtqnTd6ENDnA-Tlw',
+  projectId: 'me-app-f71c1',
+};
 
-export const APP_VERSION = 'Patch 1';
+export const ENDPOINTS = {
+  auth: 'https://identitytoolkit.googleapis.com/v1',
+  token: 'https://securetoken.googleapis.com/v1',
+  firestore: 'https://firestore.googleapis.com/v1',
+};
+
+export const APP_VERSION = 'ME patch 2';

@@ -6,6 +6,10 @@ import { sessions, evaluate, working } from './logic/progression.js';
 import { bestSeries, gainPct, averageGain } from './logic/stats.js';
 import { totals, macrosFor, amountLabel } from './logic/nutrition.js';
 import { sameFood } from './logic/foods.js';
+import { totalXP, progress as levelProgress } from './logic/levels.js';
+import { workoutDates, currentMessage } from './logic/progress.js';
+import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
+import { addDays } from './logic/dates.js';
 
 export const DAY_TYPES = [
   { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Forearms' },
@@ -17,7 +21,7 @@ const byCreated = (a, b) => ((a.created || '') < (b.created || '') ? -1 : 1);
 const now = () => new Date().toISOString();
 
 // ---- settings ----
-const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4 };
+const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men' };
 export function settings() {
   const s = store.get('settings') || {};
   return { ...DEFAULTS, ...s, targets: { ...DEFAULTS.targets, ...(s.targets || {}) } };
@@ -33,6 +37,46 @@ export function streakInfo(today) {
   const dates = qualifyingDates(store.all('checkin'), store.all('set'));
   return { current: currentStreak(dates, today), best: bestStreak(dates), start: streakStart(dates, today), dates };
 }
+// What each day looked like: workout (with its day type), rest, off, missed, today (not yet), or future.
+export function dayStatus(date, today) {
+  if (date > today) return { kind: 'future' };
+  const c = checkin(date);
+  if (c && (c.type === 'rest' || c.type === 'off')) return { kind: c.type };
+  const done = allSets().filter((s) => s.date === date && s.done);
+  if (done.length) return { kind: 'workout', dayType: (c && c.dayType) || done[0].dayType };
+  return { kind: date === today ? 'today' : 'missed' };
+}
+export const weekDays = (today) => Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+
+// ---- level and XP ----
+export function levelInfo(today) {
+  const { total, parts } = totalXP(allSets(), streakInfo(today).dates);
+  return { ...levelProgress(total), parts };
+}
+export const levelSeen = () => (store.get('levelseen') || {}).level || 0;
+export const setLevelSeen = (level) => store.put('levelseen', 'levelseen', { level });
+
+// ---- progress messages ----
+export const progressInfo = (today) => currentMessage(workoutDates(allSets()), today);
+export const messageShown = (day) => !!store.get(`progressmsg:${day}`);
+export const markMessage = (day) => store.put('progressmsg', `progressmsg:${day}`, { day });
+
+// ---- strength levels ----
+export const liftFor = (ex) => (ex.standard === 'none' ? null : ex.standard || guessLift(ex.name));
+export const setStandard = (ex, lift) => store.update(ex.id, { standard: lift || 'none' });
+export function strengthLevels() {
+  const bw = (weighins().pop() || {}).lb || null;
+  const sex = settings().standards;
+  const out = [];
+  for (const ex of exercises()) {
+    const lift = liftFor(ex);
+    if (!lift || !LIFTS[lift]) continue;
+    const rm = bestOneRepMax(setsFor(ex.id));
+    out.push({ exercise: ex, lift, group: LIFTS[lift].group, oneRM: rm, result: levelOf(lift, rm, bw, sex) });
+  }
+  return { bodyweight: bw, sex, items: out };
+}
+
 export const milestoneShown = (start, n) => !!store.get(`milestone:${start}:${n}`);
 export const markMilestone = (start, n) => store.put('milestone', `milestone:${start}:${n}`, { start, n });
 

@@ -6,7 +6,7 @@ import * as sync from './core/sync.js';
 import { iso } from './logic/dates.js';
 import { milestoneFor } from './logic/streak.js';
 import * as data from './data.js';
-import { celebrate } from './celebrations.js';
+import { celebrate, levelUp, progressNote } from './celebrations.js';
 import { renderSignIn, renderSetupNeeded } from './ui/signin.js';
 import { renderToday } from './ui/today.js';
 import { renderTrain } from './ui/train.js';
@@ -74,13 +74,27 @@ function drawTabs() {
   tabs.hidden = false;
 }
 
+// One pop-up at a time: streak milestone, then level-up, then progress note.
 function checkMilestone() {
+  if (document.querySelector('.celebrate')) return;
   const today = iso();
   const st = data.streakInfo(today);
   const m = milestoneFor(st.current);
   if (m && st.start && !data.milestoneShown(st.start, m)) {
     data.markMilestone(st.start, m);
     celebrate(m);
+    return;
+  }
+  const L = data.levelInfo(today).level;
+  const seen = data.levelSeen();
+  if (L > seen) {
+    data.setLevelSeen(L);
+    if (seen > 0) { levelUp(L); return; } // first run: just remember the level
+  }
+  const p = data.progressInfo(today);
+  if (p.message && !data.messageShown(p.message.day)) {
+    data.markMessage(p.message.day);
+    progressNote(p.message);
   }
 }
 
@@ -128,6 +142,7 @@ function doSignOut() {
 window.addEventListener('hashchange', () => { closeAllSheets(); render(); });
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
 window.addEventListener('tracker-signed-out', () => location.reload());
+window.addEventListener('tracker-popup-closed', () => setTimeout(checkMilestone, 300));
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

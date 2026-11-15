@@ -134,3 +134,36 @@ button.item { border-left: 0; border-right: 0; border-top: 0; width: 100%; }
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 @keyframes ray { from { transform: rotate(var(--a)) translateY(-20px); opacity: 0; } 60% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sheet, .celebrate-card, .burst i { animation: none; } }
+
+/* level */
+.level-badge { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 72px; height: 72px; border-radius: 16px; background: var(--bg); border: 2px solid var(--accent); }
+.level-badge .sub { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.level-num { font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.bar.xp { height: 10px; border-radius: 5px; }
+.bar.xp > i { background: linear-gradient(90deg, var(--accent), var(--yellow)); }
+.bar.good > i { background: var(--green); }
+.stack.tight { gap: 6px; }
+
+/* streak: week + month */
+.best { text-align: center; }
+.best-num { font-size: 22px; font-weight: 800; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.week-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.daymark { width: 38px; height: 38px; border-radius: 19px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; box-sizing: border-box; }
+.daymark.mini { width: 12px; height: 12px; border-radius: 6px; }
+.workout { background: var(--accent); color: var(--on-accent); }
+.rest { background: #7FB2FF; color: #0E1A2E; }
+.off { background: #4A5059; color: #E3E6EA; }
+.missed { border: 2px solid #4A5059; color: var(--muted); }
+.today { border: 2px dashed var(--yellow); color: var(--text); }
+.future { color: #5A616B; border: 1px solid var(--line); }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-head { font-size: 11px; color: var(--muted); text-align: center; }
+.calday { height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; box-sizing: border-box; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+/* progress note */
+.msg { background: var(--bg); border-radius: 12px; padding: 12px; }
+.msg-title { font-weight: 700; margin-bottom: 4px; }
+.msg p { margin: 0; color: var(--muted); font-size: 15px; }

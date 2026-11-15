@@ -1,6 +1,6 @@
 // Local-first record store. Every piece of data is a record:
 // { id, kind, data, deleted, updated_at, dirty }. Records live in IndexedDB on the
-// device (so the app works offline) and sync to Supabase when online.
+// device (so the app works offline) and sync to Firebase when online.
 import { openDB, run } from './idb.js';
 
 let db = null;

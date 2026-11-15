@@ -38,11 +38,27 @@ function exerciseDetail(ex) {
     })) : empty('No sessions yet.')));
 }
 
+function strengthCard() {
+  const sl = data.strengthLevels();
+  let body;
+  if (!sl.items.length) body = h('p', { class: 'sub' }, 'Shows for bench press, squat and deadlift. Link an exercise under Workout → Edit.');
+  else if (!sl.bodyweight) body = h('p', { class: 'sub' }, 'Log a weigh-in to see your levels.');
+  else {
+    body = h('div', { class: 'list' }, sl.items.map((it) => h('div', { class: 'item' }, h('div', { class: 'item-main' },
+      h('span', { class: 'item-name' }, `${it.group}: ${it.result ? it.result.level : 'No standard yet'}`),
+      h('span', { class: 'sub' }, it.result
+        ? `${it.exercise.name} · est. max ${fmt(it.oneRM)} lb = ${fmt(it.result.ratio, 2)}× bodyweight${it.result.nextLevel ? ` · ${it.result.nextLevel} at ${fmt(it.result.nextWeight)} lb` : ''}`
+        : `${it.exercise.name} · ${it.oneRM ? 'no women\'s standard for this lift yet' : 'no sets yet'}`)))));
+  }
+  return card(h('h2', { class: 'card-title' }, 'Strength levels'), body);
+}
+
 function byExercise() {
   const exs = data.exercises();
   if (!exs.length) return empty('No exercises yet.');
   const overall = data.overallGain();
   return h('div', { class: 'stack' },
+    strengthCard(),
     card(h('div', { class: 'sub' }, 'Overall strength gained'), h('div', { class: 'big-num' }, overall == null ? '—' : signed(overall, 0, '%')),
       h('div', { class: 'sub' }, 'Average across exercises: best weight now vs your first session.')),
     h('div', { class: 'list' }, exs.map((ex) => {

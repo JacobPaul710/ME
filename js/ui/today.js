@@ -1,4 +1,4 @@
-import { h } from './dom.js';
+import { h, fmt } from './dom.js';
 import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot } from './components.js';
 import { streakWidget } from './streakWidget.js';
 import { nice } from '../logic/dates.js';
@@ -80,12 +80,39 @@ function foodCard(today, go) {
     MACROS.map((m) => progressRow(m.label, t[m.key], tg[m.key], m.unit)));
 }
 
+export function levelCard(today) {
+  const L = data.levelInfo(today);
+  return h('section', { class: 'card level', 'aria-label': `Level ${L.level}` },
+    h('div', { class: 'row' },
+      h('div', { class: 'level-badge' }, h('span', { class: 'sub' }, 'Level'), h('span', { class: 'level-num' }, String(L.level))),
+      h('div', { class: 'grow stack tight' },
+        h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, `${fmt(L.xp)} XP`),
+          h('span', { class: 'sub' }, L.level >= 99 ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)),
+        h('div', { class: 'bar xp' }, h('i', { style: `width:${L.pct}%` })))));
+}
+
+function progressCard(today) {
+  const p = data.progressInfo(today);
+  if (!p.start) return null;
+  return card(
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Consistency'), h('span', { class: 'sub' }, 'Push, Pull, Legs · last 30 days')),
+    h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, 'Workout days'), h('span', { class: 'num' }, `${p.done} `, h('span', { class: 'sub' }, `/ ${p.goal} goal`))),
+    h('div', { class: `bar${p.on ? ' good' : ''}` }, h('i', { style: `width:${Math.min(100, (p.done / p.goal) * 100)}%` })),
+    p.message
+      ? h('div', { class: 'msg' }, h('div', { class: 'msg-title' }, p.message.title), h('p', null, p.message.text))
+      : h('p', { class: 'sub' }, p.on
+        ? `Your first progress note unlocks ${p.next ? `on day ${p.next.day}` : 'soon'}.`
+        : `Get to ${p.goal} workout days to keep your progress notes coming.`));
+}
+
 export function renderToday(root, ctx) {
   const { today, go } = ctx;
   root.append(
     header('Today', nice(today), ctx.syncBadge()),
-    streakWidget(data.streakInfo(today)),
+    levelCard(today),
+    streakWidget(data.streakInfo(today), today),
     checkinCard(today, go),
     weighCard(today, go),
+    progressCard(today),
     foodCard(today, go));
 }

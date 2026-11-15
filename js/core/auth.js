@@ -1,12 +1,12 @@
-// Supabase sign-in and data calls over plain fetch (no library, so it also runs
-// unchanged inside a Capacitor app later).
-import { SUPABASE_URL, SUPABASE_KEY } from '../config.js';
+// Firebase sign-in and database calls over plain fetch (no library, so it also
+// runs unchanged inside a Capacitor app later).
+import { FIREBASE, ENDPOINTS } from '../config.js';
 
-const BASE = SUPABASE_URL.replace(/\/$/, '');
 const KEY = 'tracker-session';
+const DOCS = `projects/${FIREBASE.projectId}/databases/(default)/documents`;
 
 export function configured() {
-  return !BASE.includes('YOUR-PROJECT') && !SUPABASE_KEY.startsWith('YOUR-');
+  return !!FIREBASE.apiKey && !FIREBASE.apiKey.startsWith('YOUR');
 }
 
 export function session() {
@@ -14,63 +14,65 @@ export function session() {
 }
 function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
 
-async function authCall(path, body) {
-  const res = await fetch(`${BASE}/auth/v1/${path}`, {
+const FRIENDLY = {
+  EMAIL_EXISTS: 'That email already has an account. Tap Sign in.',
+  INVALID_LOGIN_CREDENTIALS: 'Wrong email or password.',
+  INVALID_PASSWORD: 'Wrong email or password.',
+  EMAIL_NOT_FOUND: 'Wrong email or password.',
+  INVALID_EMAIL: 'That email address looks wrong.',
+  USER_DISABLED: 'This account is turned off.',
+  OPERATION_NOT_ALLOWED: 'Email sign-in or new accounts are turned off in Firebase.',
+  ADMIN_ONLY_OPERATION: 'New accounts are turned off in Firebase.',
+  TOO_MANY_ATTEMPTS_TRY_LATER: 'Too many tries. Wait a few minutes.',
+};
+
+async function post(url, body, form = false) {
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': form ? 'application/x-www-form-urlencoded' : 'application/json' },
+    body: form ? new URLSearchParams(body).toString() : JSON.stringify(body),
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(j.msg || j.error_description || j.message || `Request failed (${res.status})`);
+    const code = (j.error && j.error.message) || '';
+    const err = new Error(FRIENDLY[code.split(' ')[0]] || (code.startsWith('WEAK_PASSWORD') ? 'Use at least 6 characters.' : `Sign-in failed (${res.status})`));
     err.status = res.status;
     throw err;
   }
   return j;
 }
 
-function fromToken(j) {
+function fromAuth(j, prev = {}) {
   return {
-    access_token: j.access_token,
-    refresh_token: j.refresh_token,
-    expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600),
-    user: { id: j.user.id, email: j.user.email },
+    token: j.idToken || j.id_token,
+    refresh: j.refreshToken || j.refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + Number(j.expiresIn || j.expires_in || 3600),
+    user: { id: j.localId || j.user_id || prev.user?.id, email: j.email || prev.user?.email },
   };
 }
 
 export async function signIn(email, password) {
-  const s = fromToken(await authCall('token?grant_type=password', { email, password }));
+  const s = fromAuth(await post(`${ENDPOINTS.auth}/accounts:signInWithPassword?key=${FIREBASE.apiKey}`, { email, password, returnSecureToken: true }));
   save(s);
   return s;
 }
 
-// Returns a session, or null when Supabase wants the email confirmed first.
 export async function signUp(email, password) {
-  const j = await authCall('signup', { email, password });
-  if (!j.access_token) return null;
-  const s = fromToken(j);
+  const s = fromAuth(await post(`${ENDPOINTS.auth}/accounts:signUp?key=${FIREBASE.apiKey}`, { email, password, returnSecureToken: true }));
   save(s);
   return s;
 }
 
-export function signOut() {
-  const s = session();
-  localStorage.removeItem(KEY);
-  if (s && navigator.onLine) {
-    fetch(`${BASE}/auth/v1/logout`, {
-      method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${s.access_token}` },
-    }).catch(() => {});
-  }
-}
+export function signOut() { localStorage.removeItem(KEY); }
 
 let refreshing = null;
 export async function token() {
   const s = session();
   if (!s) throw new Error('Signed out');
-  if (s.expires_at - Date.now() / 1000 > 60) return s.access_token;
+  if (s.expires_at - Date.now() / 1000 > 120) return s.token;
   if (!refreshing) {
-    refreshing = authCall('token?grant_type=refresh_token', { refresh_token: s.refresh_token })
-      .then((j) => { const n = fromToken(j); save(n); return n; })
+    refreshing = post(`${ENDPOINTS.token}/token?key=${FIREBASE.apiKey}`, { grant_type: 'refresh_token', refresh_token: s.refresh }, true)
+      .then((j) => { const n = fromAuth(j, s); save(n); return n; })
       .catch((e) => {
         if (e.status >= 400 && e.status < 500) {
           localStorage.removeItem(KEY);
@@ -80,16 +82,19 @@ export async function token() {
       })
       .finally(() => { refreshing = null; });
   }
-  return (await refreshing).access_token;
+  return (await refreshing).token;
 }
 
-export async function rest(path, opts = {}) {
+// POST to Firestore. path is appended to ".../documents" (e.g. ":commit").
+export async function firestore(path, body) {
   const t = await token();
-  const res = await fetch(`${BASE}/rest/v1/${path}`, {
-    ...opts,
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${t}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  const res = await fetch(`${ENDPOINTS.firestore}/${DOCS}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Sync failed (${res.status}): ${(await res.text()).slice(0, 160)}`);
-  const type = res.headers.get('content-type') || '';
-  return res.status !== 204 && type.includes('json') ? res.json() : null;
+  return res.json();
 }
+
+export const docName = (uid, id) => `${DOCS}/users/${uid}/records/${id}`;

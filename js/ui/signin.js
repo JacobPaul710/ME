@@ -12,14 +12,13 @@ export function renderSignIn(root, onDone) {
     msg.textContent = `${label}…`;
     try {
       const s = await fn(email.value.trim(), pw.value);
-      if (s) onDone(s);
-      else msg.textContent = 'Account created. Check your email to confirm it, then sign in.';
+      onDone(s);
     } catch (e) {
       msg.textContent = e.message;
     }
   };
   root.append(
-    h('header', { class: 'page-head' }, h('h1', { class: 'title' }, 'Tracker'), h('div', { class: 'sub' }, 'Sign in once on each device.')),
+    h('header', { class: 'page-head' }, h('h1', { class: 'title' }, 'ME'), h('div', { class: 'sub' }, 'Sign in once on each device.')),
     card(field('Email', email), field('Password', pw),
       button('Sign in', () => go(signIn, 'Signing in'), 'primary block'),
       button('Create account', () => go(signUp, 'Creating account'), 'block'),
@@ -28,5 +27,5 @@ export function renderSignIn(root, onDone) {
 
 export function renderSetupNeeded(root) {
   root.append(card(h('h2', { class: 'card-title' }, 'One step left'),
-    h('p', null, 'Add your Supabase Project URL and Publishable key to js/config.js, then reload.')));
+    h('p', null, 'Add your Firebase settings to js/config.js, then reload.')));
 }

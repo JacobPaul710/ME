@@ -1,6 +1,6 @@
 {
-  "name": "Tracker",
-  "short_name": "Tracker",
+  "name": "ME",
+  "short_name": "ME",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
