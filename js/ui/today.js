@@ -5,6 +5,7 @@ import { nice, iso, parse } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
 import * as data from '../data.js';
 import { session } from '../core/auth.js';
+import { themeBackground } from './levelThemes.js';
 
 // Pick a workout type for a day, then open the logger for that day.
 // A workout only counts once at least one set is logged as done.
@@ -102,16 +103,21 @@ function foodCard(today, go) {
 
 const SWORDS = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>';
 
-export function levelCard(today) {
-  const L = data.levelInfo(today);
-  return h('section', { class: 'card level', 'aria-label': `Level ${L.level}` },
-    h('div', { class: 'row' },
+// The level card, drawn on the chosen background (Settings → Level card theme).
+export function levelCardView(L, theme) {
+  return h('section', { class: `card level theme-${theme}`, 'aria-label': `Level ${L.level}` },
+    themeBackground(theme),
+    h('div', { class: 'row level-body' },
       h('div', { class: 'level-badge' }, svg(SWORDS), h('span', { class: 'level-num' }, String(L.level))),
       h('div', { class: 'grow stack tight' },
         h('div', { class: 'level-title' }, `Level ${L.level}`),
-        h('div', { class: 'row prog-top' }, h('span', { class: 'grow' }, `${fmt(L.xp)} XP`),
-          h('span', { class: 'sub' }, L.level >= 99 ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)),
-        h('div', { class: 'bar xp' }, h('i', { style: `width:${L.pct}%` })))));
+        h('div', { class: 'bar xp' }, h('i', { style: `width:${L.pct}%` })),
+        h('div', { class: 'row prog-top level-xp' }, h('span', { class: 'grow' }, `${fmt(L.xp)} XP`),
+          h('span', null, L.level >= 99 ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)))));
+}
+
+export function levelCard(today) {
+  return levelCardView(data.levelInfo(today), data.settings().levelTheme);
 }
 
 function progressCard(today) {

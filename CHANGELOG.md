@@ -3,6 +3,9 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 2.10.0 (ME patch 4)
+- 2.10.0 Level card themes: Parchment, Stone wall and Dark wood, picked at the bottom of Settings.
+
 ## 2.9.3 (ME patch 3)
 - 2.9.3 Crossed swords on the level card.
 - 2.9.2 Fix: the word "null" showed above the food card before your first workout.

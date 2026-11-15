@@ -194,3 +194,31 @@ button.daymark:not(.workout):not(.rest):not(.off), button.calday:not(.workout):n
 .meal-item-top { display: flex; width: 100%; gap: 12px; }
 .meal-item-top .item-name { flex: 1; min-width: 0; }
 .seg button { padding: 0 4px; }
+
+/* level card themes */
+.card.level { position: relative; overflow: hidden; padding: 18px; }
+.level-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.level-body { position: relative; z-index: 1; }
+.level .level-badge { width: 76px; height: 88px; min-width: 0; border-radius: 10px; }
+.level-title { font-family: Cinzel, "Trajan Pro", Georgia, serif; font-weight: 800; font-size: 20px; letter-spacing: 0.04em; }
+.level-num { font-family: Cinzel, Georgia, serif; }
+.level-xp { font-size: 13px; font-weight: 600; }
+.theme-parchment { color: #3a2610; border: 1px solid #8a6a3a; }
+.theme-parchment .level-badge { background: rgba(90,56,18,0.12); border: 2px solid #6b4a22; color: #3a2610; }
+.theme-parchment .level-num { color: #3a2610; }
+.theme-parchment .level-xp { color: #5c4224; }
+.theme-parchment .bar.xp { background: rgba(70,45,15,0.25); }
+.theme-parchment .bar.xp > i { background: linear-gradient(90deg, #7a2414, #a8401f); }
+.theme-stone { color: #eef0f2; border: 1px solid #3c4046; }
+.theme-stone .level-badge { background: rgba(0,0,0,0.45); border: 2px solid #8d969f; color: #d8dee4; }
+.theme-stone .level-xp { color: #c3c9cf; }
+.theme-stone .bar.xp { background: rgba(0,0,0,0.5); }
+.theme-stone .bar.xp > i { background: linear-gradient(90deg, #c9cfd5, #ffffff); }
+.theme-wood { color: #f3e7cf; border: 2px solid #b8913a; box-shadow: inset 0 0 0 3px #1c1007; }
+.theme-wood .level-badge { background: rgba(0,0,0,0.35); border: 2px solid #c9a14a; color: #e2bd62; }
+.theme-wood .level-xp { color: #dcc69f; }
+.theme-wood .bar.xp { background: rgba(0,0,0,0.45); }
+.theme-wood .bar.xp > i { background: linear-gradient(90deg, #b8862e, #f0cf72); }
+.theme-option { display: flex; flex-direction: column; gap: 8px; padding: 8px; border-radius: 18px; border: 2px solid transparent; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.theme-option[aria-pressed="true"] { border-color: var(--accent); }
+.theme-label { font-weight: 600; padding-left: 4px; }

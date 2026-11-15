@@ -6,6 +6,9 @@ import { iso } from '../logic/dates.js';
 import { session } from '../core/auth.js';
 import { APP_VERSION } from '../config.js';
 import * as data from '../data.js';
+import { LEVEL_THEMES } from './levelThemes.js';
+import { levelCardView } from './today.js';
+import { iso as todayIso } from '../logic/dates.js';
 
 const EXPORTS = {
   workouts: ['Workouts', [['date', 'date'], ['day', 'dayType'], ['exercise', 'exercise'], ['set', 'n'], ['weight_lb', 'weight'], ['reps', 'reps'], ['minutes', 'minutes'], ['miles', 'miles'], ['done_at', 'doneAt']]],
@@ -28,6 +31,19 @@ async function exportCSV(key) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Pick the level card background. Saves as soon as you tap one.
+function themePicker(current) {
+  const L = data.levelInfo(todayIso());
+  return card(h('h2', { class: 'card-title' }, 'Level card theme'),
+    h('div', { class: 'stack' }, LEVEL_THEMES.map(([id, label]) =>
+      h('button', { type: 'button', class: 'theme-option', 'aria-pressed': id === current ? 'true' : 'false', onClick: async () => {
+        await data.setLevelTheme(id);
+        toast(`${label} theme on`);
+      } },
+      h('span', { class: 'theme-label' }, label, id === current ? h('span', { class: 'sub' }, ' · in use') : null),
+      levelCardView(L, id)))));
 }
 
 export function renderSettings(root, ctx) {
@@ -56,5 +72,6 @@ export function renderSettings(root, ctx) {
     card(h('h2', { class: 'card-title' }, 'Account'),
       h('div', { class: 'sub' }, user ? `Signed in as ${user.email}` : ''),
       button('Sign out', () => confirmSheet('Sign out?', 'Anything not yet synced stays on this phone and syncs when you sign in again.', 'Sign out', ctx.signOut), 'block')),
+    themePicker(s.levelTheme),
     h('p', { class: 'sub center' }, APP_VERSION));
 }

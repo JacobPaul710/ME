@@ -21,11 +21,12 @@ const byCreated = (a, b) => ((a.created || '') < (b.created || '') ? -1 : 1);
 const now = () => new Date().toISOString();
 
 // ---- settings ----
-const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men' };
+const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men', levelTheme: 'parchment' };
 export function settings() {
   const s = store.get('settings') || {};
   return { ...DEFAULTS, ...s, targets: { ...DEFAULTS.targets, ...(s.targets || {}) } };
 }
+export const setLevelTheme = (theme) => saveSettings({ ...settings(), levelTheme: theme });
 export function saveSettings(s) { const { id, ...rest } = s; return store.put('settings', 'settings', rest); }
 
 // ---- check-ins and streak ----
