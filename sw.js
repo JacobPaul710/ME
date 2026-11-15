@@ -1,6 +1,6 @@
 // Keeps the app's files on the phone so it opens without signal.
 // Bump VERSION with every patch so phones pick up the new files.
-const VERSION = 'me-patch-3';
+const VERSION = 'me-2.9.3';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
