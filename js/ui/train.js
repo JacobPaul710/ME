@@ -75,6 +75,7 @@ function exerciseCard(ex, dayType, today) {
       if (row.done) { await commit(row, { ...v, done: false, doneAt: null }); return; }
       if (cardio ? !(v.minutes > 0) : !(v.reps > 0)) { toast(cardio ? 'Enter minutes first' : 'Enter reps first'); return; }
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
+      quake();
       if (!cardio) toast(`+${Math.round(v.reps) * XP.rep} XP`);
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
@@ -99,6 +100,17 @@ function exerciseCard(ex, dayType, today) {
     h('div', { class: 'set-row head', 'aria-hidden': 'true' }, h('span'), h('span', null, cardio ? 'Minutes' : 'Weight (lb)'), h('span', null, cardio ? 'Miles' : 'Reps'), h('span')),
     rows.map(rowEl),
     button('+ Add set', addSet, 'block'));
+}
+
+// Shake the whole screen like an earthquake when a set is completed.
+function quake() {
+  const app = document.getElementById('app');
+  if (navigator.vibrate) navigator.vibrate([60, 40, 90]); // Android only; iPhone browsers can't vibrate
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  app.classList.remove('quake');
+  void app.offsetWidth; // restart the animation
+  app.classList.add('quake');
+  setTimeout(() => app.classList.remove('quake'), 700);
 }
 
 function exerciseMenu(ex, dayType) {

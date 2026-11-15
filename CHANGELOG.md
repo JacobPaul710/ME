@@ -3,6 +3,10 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 2.12.0 (ME patch 5)
+- 2.12.0 Earthquake: the screen shakes when you complete a set (Android phones also buzz).
+- 2.11.0 The whole app follows the level card theme: colors, cards, buttons, background texture and headings.
+
 ## 2.10.0 (ME patch 4)
 - 2.10.0 Level card themes: Parchment, Stone wall and Dark wood, picked at the bottom of Settings.
 

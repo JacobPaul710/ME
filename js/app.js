@@ -7,6 +7,7 @@ import { iso } from './logic/dates.js';
 import { milestoneFor } from './logic/streak.js';
 import * as data from './data.js';
 import { celebrate, levelUp, progressNote } from './celebrations.js';
+import { themeBackground } from './ui/levelThemes.js';
 import { renderSignIn, renderSetupNeeded } from './ui/signin.js';
 import { renderToday } from './ui/today.js';
 import { renderTrain } from './ui/train.js';
@@ -50,8 +51,24 @@ const ctxBase = {
   signOut: () => doSignOut(),
 };
 
+// The whole app follows the level card theme picked in Settings.
+const THEME_COLOR = { parchment: '#e6d6b3', stone: '#16181b', wood: '#1a1008' };
+let appliedTheme = null;
+function applyTheme() {
+  const theme = data.settings().levelTheme;
+  if (theme === appliedTheme) return;
+  appliedTheme = theme;
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme] || '#111315');
+  const bg = themeBackground(theme);
+  bg.classList.add('app-bg');
+  const old = document.querySelector('.app-bg');
+  if (old) old.replaceWith(bg); else document.body.prepend(bg);
+}
+
 let pending = false;
 function render() {
+  applyTheme();
   const view = document.getElementById('view');
   if (view && view.contains(document.activeElement) && document.activeElement.matches('input, select, textarea')) {
     pending = true; // don't redraw under the user's fingers
