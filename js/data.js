@@ -21,7 +21,7 @@ const byCreated = (a, b) => ((a.created || '') < (b.created || '') ? -1 : 1);
 const now = () => new Date().toISOString();
 
 // ---- settings ----
-const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men', levelTheme: 'parchment' };
+const DEFAULTS = { targets: { cal: null, p: null, c: null, f: null }, sessionsToAdvance: 4, standards: 'men', levelTheme: 'parchment', voiceCheers: true };
 export function settings() {
   const s = store.get('settings') || {};
   return { ...DEFAULTS, ...s, targets: { ...DEFAULTS.targets, ...(s.targets || {}) } };

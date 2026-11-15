@@ -72,6 +72,13 @@ export function renderSettings(root, ctx) {
     card(h('h2', { class: 'card-title' }, 'Account'),
       h('div', { class: 'sub' }, user ? `Signed in as ${user.email}` : ''),
       button('Sign out', () => confirmSheet('Sign out?', 'Anything not yet synced stays on this phone and syncs when you sign in again.', 'Sign out', ctx.signOut), 'block')),
+    card(h('h2', { class: 'card-title' }, 'Voice cheers'),
+      h('label', { class: 'check-row' },
+        h('input', { type: 'checkbox', class: 'check', checked: s.voiceCheers !== false, onChange: async (e) => {
+          await data.saveSettings({ ...data.settings(), voiceCheers: e.target.checked });
+          toast(e.target.checked ? 'Voice cheers on' : 'Voice cheers off');
+        } }),
+        h('span', null, 'Play a cheer when I finish a set'))),
     themePicker(s.levelTheme),
     h('p', { class: 'sub center' }, APP_VERSION));
 }

@@ -5,6 +5,7 @@ import { nice, ago, short } from '../logic/dates.js';
 import { XP } from '../logic/levels.js';
 import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
+import { cheer } from '../core/cheers.js';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(+v) ? null : +v);
 
@@ -76,6 +77,7 @@ function exerciseCard(ex, dayType, today) {
       if (cardio ? !(v.minutes > 0) : !(v.reps > 0)) { toast(cardio ? 'Enter minutes first' : 'Enter reps first'); return; }
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
+      if (data.settings().voiceCheers) cheer();
       if (!cardio) toast(`+${Math.round(v.reps) * XP.rep} XP`);
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
