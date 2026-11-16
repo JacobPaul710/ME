@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.21.0)
+## Built (version 3.27.3)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -11,7 +11,7 @@
 - Hidden check-for-updates tap under the version number in Settings
 
 **Today**
-- Level card (1–126) with XP bar and crossed swords, in your chosen theme
+- Combat level card with crossed swords, in your chosen theme (tap for what's needed)
 - Streak card: current streak, days to next milestone, this week (Sunday to Saturday), this month's calendar
 - Best streak at the top of History → Workouts
 - Tap any past day to set it to Rest or Off, or to log a workout for that date
@@ -29,8 +29,8 @@
 - Each exercise has its own rep range (for example 20 for forearms, 20–22 for calf raises)
 - "Go up in weight" when every set has hit the top goal enough sessions in a row
 - Left and right reps counted separately (forearms)
-- Rest timer between sets (1 to 3 minutes) with a bell when rest is over
-- XP toast, earthquake shake and voice cheer when a set is done
+- Rest timer between sets (1 to 3 minutes, set in Settings) with a bell when rest is over
+- Skill XP toast, earthquake shake and voice cheer when a set is done
 - Cardio by minutes and optional miles
 
 **Food**
@@ -52,8 +52,7 @@
 - Food day by day by meal; weight chart with 7-day, 30-day and total change
 
 **Motivation**
-- Levels 1–126 (about 2 years): XP per rep grows with the weight, small bonus per set,
-  new-weight and streak bonuses that scale with your level, level-up pop-up and fanfare
+- Combat level 3–126 (about 2 years at a steady pace), built from your skills; combat level-up pop-up and fanfare
 - Streak milestones at 7, 15, 22 and 30 days (and every 30 after), with a horn
 - Gear tiers (Bronze to Obsidian): research-based body changes at 2 weeks to 1 year,
   unlocked while you're at 75%+ of planned workouts, with their own sound
@@ -63,16 +62,20 @@
 - Preview every sound, pop-up and gear tier from Settings
 
 **Character**
-- Character tab: figure wears your current gear tier; overall level and streak
-- 10 skills on the same 1–126 curve: Attack (Push reps), Strength (Legs reps), Defence (Pull and Back reps),
-  Agility (cardio minutes), Hitpoints (weigh-ins), Discipline (streak days), Cooking (days at protein target),
-  Stamina (sets), Mastery (weight increases), Herblore (supplements taken)
+- Combat level (3–126) from your skills, RuneScape formula: ¼ × (Defence + Hitpoints + ½ Discipline) + 0.325 × (Attack + Strength)
+- Tap the combat card: skill levels gained since your last combat level, and what's still needed for the next one
+- 10 skills, 1–99, RuneScape XP table: Attack (Pull reps), Strength (Push reps), Defence (Back reps), Hitpoints (all four days),
+  Agility (Legs reps), Discipline (streak days), Cooking (days at protein target), Stamina (sets), Mastery (weight increases),
+  Herblore (supplements taken)
+- Each set shows the skill XP it earned and any skill level-ups
+- Skill tiles with icons and yellow pixel numbers; tap to flip and see XP and XP to the next level
+- Pixel-art character in your gear tier colours; tap for one of 100 random animations
 - Supplements set up in Settings with suggested amounts from your details; daily check-off on the Food tab
 
 **Look**
-- Bottom bar: Today, Workout, Food, History, Character; Settings in a ☰ side menu
+- Bottom bar: Today, Workout, Food, Character, History; swipe in from the left edge for Settings
 - Themes: Parchment, Stone wall, Dark wood (the whole app follows the level card theme)
-- Wall sconces either side of the Today title, with flames that change colour together
+- Wall sconces either side of the Today title, with flames that change colour together (15-second loop)
 
 ## Still to do
 - Basic foods list loaded (needs one command on your Mac)

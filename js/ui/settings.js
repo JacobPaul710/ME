@@ -10,6 +10,7 @@ import { LEVEL_THEMES } from './levelThemes.js';
 import { ACTIVITY, GOALS, activityValue } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
 import { PRESETS, suggest } from '../logic/supplements.js';
+import { REST_CHOICES } from './restTimer.js';
 import { sfx } from '../core/sfx.js';
 import { cheer } from '../core/cheers.js';
 import { celebrate, levelUp, tierUnlocked } from '../celebrations.js';
@@ -50,7 +51,7 @@ function previewSheet() {
       row('Streak milestone', () => sfx.milestone()), row('Rest bell', () => sfx.restDone())),
     row('Voice cheer', async () => { if (!(await cheer())) toast('No voice clips yet. Add them to audio/cheers.'); }),
     h('h3', { class: 'list-head' }, 'Pop-ups'),
-    h('div', { class: 'grid2' }, row('Level 14', () => levelUp(14)), row('Level 20', () => levelUp(20)),
+    h('div', { class: 'grid2' }, row('Combat level 14', () => levelUp(14)), row('Combat level 20', () => levelUp(20)),
       row('7-day streak', () => celebrate(7)), row('30-day streak', () => celebrate(30))),
     h('h3', { class: 'list-head' }, 'Gear tiers'),
     TIERS.map((t) => row(`${t.name} (day ${t.day})`, () => tierUnlocked(t)))));
@@ -58,7 +59,7 @@ function previewSheet() {
 
 // Pick the level card background. Saves as soon as you tap one.
 function themePicker(current) {
-  const L = data.levelInfo(todayIso());
+  const L = data.skillInfo(todayIso());
   return card(h('h2', { class: 'card-title' }, 'Level card theme'),
     h('div', { class: 'stack' }, LEVEL_THEMES.map(([id, label]) =>
       h('button', { type: 'button', class: 'theme-option', 'aria-pressed': id === current ? 'true' : 'false', onClick: async () => {
@@ -109,6 +110,14 @@ function supplementsCard() {
     button('Add supplement', addSupplementSheet, 'block'));
 }
 
+// Rest timer length (saves as soon as you pick).
+function restCard() {
+  const rest = h('select', { 'aria-label': 'Rest between sets' },
+    REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
+  rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
+  return card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Rest between sets'), rest));
+}
+
 export function renderSettings(root, ctx) {
   const s = data.settings();
   const inputs = Object.fromEntries(MACROS.map((m) => [m.key, numberInput(s.targets[m.key], { 'aria-label': `${m.label} target` })]));
@@ -154,6 +163,7 @@ export function renderSettings(root, ctx) {
     card(h('h2', { class: 'card-title' }, 'Daily targets'),
       h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), inputs[m.key])))),
     supplementsCard(),
+    restCard(),
     card(h('h2', { class: 'card-title' }, 'Rep goal'),
       field('Sessions in a row before the rep goal goes up', sessions)),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),

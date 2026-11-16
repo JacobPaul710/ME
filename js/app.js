@@ -31,11 +31,11 @@ const SCREENS = {
   today: ['Today', renderToday],
   train: ['Workout', renderTrain],
   food: ['Food', renderFood],
-  history: ['History', renderHistory],
   character: ['Character', renderCharacter],
+  history: ['History', renderHistory],
 };
 
-// Settings live in a menu that slides in from the left (☰ at the top of every screen).
+// Settings live in a menu that slides in when you swipe in from the left edge of the screen.
 let menuOpen = false;
 function openMenu() {
   menuOpen = true;
@@ -65,11 +65,6 @@ function drawMenu() {
   if (old) { drawer.scrollTop = old.querySelector('.drawer').scrollTop; old.replaceWith(wrap); wrap.classList.add('still'); }
   else document.body.append(wrap);
 }
-function menuButton() {
-  return h('button', { type: 'button', class: 'menu-btn', 'aria-label': 'Menu', 'aria-expanded': menuOpen ? 'true' : 'false', onClick: () => (menuOpen ? closeMenu() : openMenu()) },
-    svg('<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'));
-}
-
 function route() {
   if (location.hash.startsWith('#settings')) { // old links: open the menu over Today
     history.replaceState(null, '', '#today');
@@ -122,7 +117,6 @@ function render() {
   const y = window.scrollY;
   const sameScreen = view && view.dataset.screen === screen;
   const root = h('div', { id: 'view', 'data-screen': screen, class: 'stack' });
-  root.append(menuButton());
   SCREENS[screen][1](root, { ...ctxBase, today: iso(), sub });
   if (view) view.replaceWith(root); else app.replaceChildren(root);
   drawMenu();
@@ -149,10 +143,10 @@ function checkMilestone() {
     celebrate(m);
     return;
   }
-  const L = data.levelInfo(today).level;
-  const seen = data.levelSeen();
+  const L = data.skillInfo(today).combat;
+  const seen = data.combatSeen();
   if (L > seen) {
-    data.setLevelSeen(L);
+    data.setCombatSeen(L);
     if (seen > 0) { levelUp(L); return; } // first run: just remember the level
   }
   const g = data.gearInfo(today);
@@ -207,6 +201,18 @@ function doSignOut() {
 
 window.addEventListener('hashchange', () => { closeAllSheets(); if (!location.hash.startsWith('#settings')) closeMenu(); render(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+// Swipe in from the left edge opens Settings.
+let edge = null;
+document.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  edge = !menuOpen && e.touches.length === 1 && t.clientX < 28 && !document.querySelector('.sheet-wrap, .celebrate') ? { x: t.clientX, y: t.clientY } : null;
+}, { passive: true });
+document.addEventListener('touchmove', (e) => {
+  if (!edge) return;
+  const t = e.touches[0];
+  if (t.clientX - edge.x > 60 && Math.abs(t.clientY - edge.y) < 50) { edge = null; if (session()) openMenu(); }
+}, { passive: true });
+document.addEventListener('touchend', () => { edge = null; }, { passive: true });
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
 window.addEventListener('tracker-signed-out', () => location.reload());
 window.addEventListener('tracker-popup-closed', () => setTimeout(checkMilestone, 300));

@@ -10,7 +10,7 @@ import { totalXP, progress as levelProgress } from './logic/levels.js';
 import { workoutDates, gearStatus } from './logic/gear.js';
 import { dailyTargets, workoutMinutes, workoutCalories, intakeCheck } from './logic/targets.js';
 import { seedRecords } from './seed.js';
-import { skillLevels } from './logic/skills.js';
+import { skillLevels, combatNeeds } from './logic/skills.js';
 import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
 import { addDays, parse, iso } from './logic/dates.js';
 
@@ -257,23 +257,43 @@ export function toggleSupp(date, id) {
   return store.put('supp', 'supp:' + date, { date, taken: t.includes(id) ? t.filter((x) => x !== id) : [...t, id] });
 }
 // Each day counts as the share of your current supplements you took (all = 1).
-export function suppDays() {
+export function suppDays(asOf = '9999') {
   const ids = new Set(supplements().map((s) => s.id));
   if (!ids.size) return 0;
-  return store.all('supp').reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
+  return store.all('supp').filter((r) => r.date <= asOf).reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
 }
 
-// ---- skills ----
-export function skillInfo(today) {
+// ---- skills and combat level ----
+function skillInput(today, asOf = today) {
   const target = +settings().targets.p || 0;
-  return skillLevels({
-    sets: allSets(), exercises: exercises(),
-    streakDays: new Set(streakInfo(today).dates),
-    weighins: weighins().length,
-    proteinDays: target ? foodDays().filter((d) => d.totals.p >= target).length : 0,
-    suppDays: suppDays(),
-  });
+  return {
+    sets: allSets().filter((s) => s.date <= asOf), exercises: exercises(),
+    streakDays: new Set([...streakInfo(today).dates].filter((d) => d <= asOf)),
+    proteinDays: target ? foodDays().filter((d) => d.date <= asOf && d.totals.p >= target).length : 0,
+    suppDays: suppDays(asOf),
+  };
 }
+export const skillInfo = (today, asOf = today) => skillLevels(skillInput(today, asOf));
+
+// Combat level card: progress since the current combat level was reached, and what's still needed.
+export function combatInfo(today) {
+  const now = skillInfo(today);
+  const dates = [...new Set([
+    ...allSets().filter((s) => s.done).map((s) => s.date),
+    ...streakInfo(today).dates, ...foodDays().map((d) => d.date), ...store.all('supp').map((r) => r.date),
+  ])].filter((d) => d <= today).sort();
+  // first day the current combat level was reached (combat level never goes down)
+  let lo = 0, hi = dates.length - 1, reached = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (skillInfo(today, dates[mid]).combat >= now.combat) { reached = dates[mid]; hi = mid - 1; } else lo = mid + 1;
+  }
+  const then = reached ? skillInfo(today, reached) : now;
+  const done = now.list.filter((s) => s.combat && s.level > then.levels[s.id]).map((s) => ({ id: s.id, name: s.name, gained: s.level - then.levels[s.id] }));
+  return { ...now, reached, done, needs: combatNeeds(now.levels) };
+}
+export const combatSeen = () => (store.get('combatseen') || {}).level || 0;
+export const setCombatSeen = (level) => store.put('combatseen', 'combatseen', { level });
 
 // Food days, newest first: [{date, totals}]
 export function foodDays() {

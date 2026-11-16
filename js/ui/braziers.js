@@ -43,7 +43,7 @@ function stand(side) {
 export const braziers = () => [stand('left'), stand('right')];
 
 // Slow colour cycle: both fires change colour together.
-const CYCLE_MS = 12000;
+const CYCLE_MS = 15000;
 let running = false;
 export function startFlames() {
   if (running) return;

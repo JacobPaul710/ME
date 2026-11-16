@@ -7,6 +7,7 @@ import * as data from '../data.js';
 import { session } from '../core/auth.js';
 import { themeBackground } from './levelThemes.js';
 import { braziers, startFlames } from './braziers.js';
+import { COMBAT_MAX } from '../logic/skills.js';
 
 // Pick a workout type for a day, then open the logger for that day.
 // A workout only counts once at least one set is logged as done.
@@ -97,28 +98,50 @@ function weighCard(today, go) {
 function foodCard(today, go) {
   const t = data.dayTotals(today);
   const tg = data.settings().targets;
+  // Green once protein is at target and calories are within 10% of the goal.
+  const met = (+tg.p > 0 || +tg.cal > 0) && (!+tg.p || t.p >= +tg.p) && (!+tg.cal || t.cal >= +tg.cal * 0.9);
   return card(
-    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, parse(today).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })), button('Add food', () => go('#food'), 'ghost')),
+    h('div', { class: 'row' }, statusDot(met), h('h2', { class: 'card-title grow' }, parse(today).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })), button('Add food', () => go('#food'), 'ghost')),
     MACROS.map((m) => progressRow(m.label, t[m.key], tg[m.key], m.unit)));
 }
 
 const SWORDS = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>';
 
-// The level card, drawn on the chosen background (Settings → Level card theme).
-export function levelCardView(L, theme) {
-  return h('section', { class: `card level theme-${theme}`, 'aria-label': `Level ${L.level}` },
+// Combat level card. Tap it to see what you've done toward the next level and what's still needed.
+export function levelCardView(C, theme, onTap) {
+  const pct = Math.max(0, Math.min(100, (C.exact - C.combat) * 100));
+  const max = C.combat >= COMBAT_MAX;
+  return h(onTap ? 'button' : 'section', { ...(onTap ? { type: 'button', onClick: onTap } : {}), class: `card level theme-${theme}`, 'aria-label': `Combat level ${C.combat}${onTap ? '. Tap to see what\'s needed for the next level' : ''}` },
     themeBackground(theme),
     h('div', { class: 'row level-body' },
-      h('div', { class: 'level-badge' }, svg(SWORDS), h('span', { class: 'level-num' }, String(L.level))),
+      h('div', { class: 'level-badge' }, svg(SWORDS), h('span', { class: 'level-num' }, String(C.combat))),
       h('div', { class: 'grow stack tight' },
-        h('div', { class: 'level-title' }, `Level ${L.level}`),
-        h('div', { class: 'bar xp' }, h('i', { style: `width:${L.pct}%` })),
-        h('div', { class: 'row prog-top level-xp' }, h('span', { class: 'grow' }, `${fmt(L.xp)} XP`),
-          h('span', null, L.level >= L.max ? 'Max level' : `${fmt(L.toNext)} to level ${L.level + 1}`)))));
+        h('div', { class: 'level-title' }, 'Combat level'),
+        h('div', { class: 'bar xp' }, h('i', { style: `width:${max ? 100 : pct}%` })),
+        h('div', { class: 'row prog-top level-xp' }, h('span', { class: 'grow' }, max ? 'Maxed' : `Next: combat level ${C.combat + 1}`),
+          onTap && !max ? h('span', null, 'Tap for details') : null))));
+}
+
+export function combatSheet(today) {
+  const C = data.combatInfo(today);
+  const lvl = (id) => C.levels[id];
+  sheet(`Combat level ${C.combat}`, h('div', { class: 'stack' },
+    C.combat >= COMBAT_MAX ? h('p', null, 'Maxed out. Nothing left to earn here.') : [
+      h('h3', { class: 'list-head' }, `Done toward combat level ${C.combat + 1}`),
+      C.done.length
+        ? h('div', { class: 'list' }, C.done.map((d) => h('div', { class: 'item combat-done' }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'),
+          h('span', { class: 'item-main' }, h('span', { class: 'item-name' }, `${d.name} +${d.gained} level${d.gained === 1 ? '' : 's'}`)))))
+        : h('p', { class: 'sub', style: 'margin:0' }, 'Nothing yet since your last combat level.'),
+      h('h3', { class: 'list-head' }, 'Still needed (any one of these)'),
+      h('div', { class: 'list' }, C.needs.map((n) => h('div', { class: 'item' }, h('span', { class: 'item-main' },
+        h('span', { class: 'item-name' }, `${n.levels} more ${n.names} level${n.levels === 1 ? '' : 's'}`),
+        h('span', { class: 'sub' }, n.ids.map((id) => `${C.list.find((s) => s.id === id).name} ${lvl(id)}`).join(' · ')))))),
+      h('p', { class: 'sub', style: 'margin:0' }, 'Mixing works too: every Attack or Strength level is worth a bit more than a Defence or Hitpoints level, and Discipline counts half.'),
+    ]));
 }
 
 export function levelCard(today) {
-  return levelCardView(data.levelInfo(today), data.settings().levelTheme);
+  return levelCardView(data.skillInfo(today), data.settings().levelTheme, () => combatSheet(today));
 }
 
 // Gear tiers: real-life changes unlocked by consistent training.

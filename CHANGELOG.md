@@ -3,6 +3,17 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.27.3 (ME patch 12)
+- 3.27.3 Flames change colour a little slower (15-second loop).
+- 3.27.2 Rest time between sets moved to Settings.
+- 3.27.1 Bottom bar order: Today, Workout, Food, Character, History.
+- 3.27.0 Pop-ups: fireworks burst in the background around the card (never over the text), with a shine and gold glow.
+- 3.26.0 Today's food card has a yellow/green light (green once protein is at target and calories are within 10% of your goal).
+- 3.25.0 The ☰ button is gone; swipe in from the left edge of the screen to open Settings.
+- 3.24.0 New pixel-art character in your gear tier colours; tap him for one of 100 random animations (10 moves × 10 effects).
+- 3.23.0 Skills panel: an icon for every skill, levels in yellow pixel numbers, tap a skill to flip it and see its XP and XP to the next level.
+- 3.22.0 Combat level (RuneScape formula) replaces the old level. Skills go 1–99 with RuneScape XP numbers. Pull → Attack, Push → Strength, Back → Defence, Legs → Agility, all four → Hitpoints, Discipline counts like Prayer. Tap the combat card to see what's done and what's still needed. Each set shows the skill XP it earned.
+
 ## 3.21.0 (ME patch 11)
 - 3.21.0 Supplements: add them in Settings (amounts worked out from your weight and sex), check them off daily on the Food tab; each one levels up Herblore.
 - 3.20.0 Settings moved to a side menu: tap ☰ at the top of any screen; close by tapping outside, ✕, swiping left or tapping a tab.

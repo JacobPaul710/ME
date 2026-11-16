@@ -1,12 +1,11 @@
-import { h } from './dom.js';
+import { h, fmt } from './dom.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
-import { nice, ago, short } from '../logic/dates.js';
-import { XP, repXP } from '../logic/levels.js';
+import { nice, ago, short, iso } from '../logic/dates.js';
 import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
 import { cheer } from '../core/cheers.js';
-import { startRest, REST_CHOICES } from './restTimer.js';
+import { startRest } from './restTimer.js';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(+v) ? null : +v);
 
@@ -100,14 +99,16 @@ function exerciseCard(ex, dayType, today) {
       if (row.done) { await commit(row, { ...v, done: false, doneAt: null }); return; }
       const ok = ready(v);
       if (ok !== true) { toast(ok); return; }
+      const before = data.skillInfo(iso());
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
       startRest(data.settings().restSeconds || 90);
-      if (!cardio) {
-        const reps = sides ? (v.repsR + v.repsL) / 2 : v.reps;
-        toast(`+${Math.round(reps * repXP(v.weight, ex.repTop) + XP.setBonus)} XP`);
-      }
+      // XP per skill for this set (like RuneScape's XP drops), plus any skill level-ups
+      const after = data.skillInfo(iso());
+      const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
+      const ups = gains.filter((g) => g.up).map((g) => `${g.s.name} level ${g.s.level}!`);
+      if (gains.length) toast([...gains.map((g) => `+${fmt(g.d, 0)} ${g.s.name} XP`), ...ups].join(' · '));
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: 'set-wrap' },
@@ -256,12 +257,8 @@ export function renderTrain(root, ctx) {
     return;
   }
   const last = data.lastDayOfType(dayType, today);
-  const rest = h('select', { 'aria-label': 'Rest between sets' },
-    REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
-  rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
   root.append(header(`${dayType} day`, (past ? `${nice(today)} · ` : '') + (last ? `Last ${dayType} day: ${nice(last)} (${ago(last, today)})` : `First ${dayType} day`),
-    button('Change', () => pickDayType(today, go), 'ghost')),
-    h('div', { class: 'row rest-pick' }, h('span', { class: 'grow' }, 'Rest between sets'), rest));
+    button('Change', () => pickDayType(today, go), 'ghost')));
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
