@@ -299,24 +299,22 @@ html[data-theme="parchment"] textarea { background: #fbf5e6; }
 body.resting #app { padding-bottom: calc(env(safe-area-inset-bottom) + 156px); }
 body.resting .toast { bottom: calc(env(safe-area-inset-bottom) + 136px); }
 
-/* Today: braziers either side of the title */
-.top-bar { justify-content: flex-end; margin-bottom: -8px; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: -4px; }
-.hero-title { text-align: center; flex: 1; padding-bottom: 14px; }
-.hero-title .title { font-size: 32px; }
-.brazier { flex: none; overflow: visible; }
-.brazier .fire { transform-box: view-box; transform-origin: 30px 58px; animation: flicker 0.9s ease-in-out infinite alternate, hue 24s linear infinite; }
-.brazier.right .fire { animation-delay: -0.45s, -12s; }
-.brazier .flame { transform-origin: 30px 58px; transform-box: view-box; }
-.brazier .f1 { animation: sway 1.3s ease-in-out infinite alternate; }
-.brazier .f2 { animation: sway 0.9s ease-in-out infinite alternate-reverse; }
-.brazier .f3 { animation: sway 1.1s ease-in-out infinite alternate; }
-.brazier .core { animation: pulse 0.6s ease-in-out infinite alternate; }
-.brazier .glow { animation: glow 1.6s ease-in-out infinite alternate; }
-@keyframes flicker { 0% { transform: scale(1, 1); } 35% { transform: scale(0.96, 1.06); } 70% { transform: scale(1.03, 0.95); } 100% { transform: scale(0.98, 1.08); } }
-@keyframes sway { from { transform: skewX(-6deg) scaleY(0.95); } to { transform: skewX(6deg) scaleY(1.06); } }
-@keyframes pulse { from { transform: scaleY(0.9); opacity: 0.85; } to { transform: scaleY(1.08); opacity: 1; } }
-@keyframes glow { from { opacity: 0.6; } to { opacity: 1; } }
-/* slow colour change: orange → green → blue → purple → back */
-@keyframes hue { from { filter: hue-rotate(0deg) saturate(1.2); } to { filter: hue-rotate(360deg) saturate(1.2); } }
-@media (prefers-reduced-motion: reduce) { .brazier .fire, .brazier .flame, .brazier .glow { animation: none; } }
+/* Today: fire stands either side of the level card */
+.level-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: end; gap: 6px; }
+.level-row .card.level { align-self: stretch; }
+.brazier { display: block; overflow: visible; }
+.brazier .fire, .brazier .tongue { transform-box: view-box; transform-origin: 22px 56px; }
+.brazier .t1 { animation: lick 0.7s ease-in-out infinite alternate; }
+.brazier .t2 { animation: lick 0.55s ease-in-out infinite alternate-reverse; }
+.brazier .t3 { animation: lick 0.62s ease-in-out infinite alternate; }
+.brazier .core { animation: core 0.4s ease-in-out infinite alternate; }
+.brazier .glow { animation: glow 1.2s ease-in-out infinite alternate; }
+.brazier.right .tongue { animation-delay: -0.3s; }
+@keyframes lick { 0% { transform: scale(1, 0.92) skewX(-5deg); } 50% { transform: scale(0.94, 1.06) skewX(3deg); } 100% { transform: scale(1.04, 1) skewX(6deg); } }
+@keyframes core { from { transform: scale(0.95, 0.88); } to { transform: scale(1.05, 1.08); } }
+@keyframes glow { from { opacity: 0.55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .brazier .tongue, .brazier .glow { animation: none; } }
+.level-row .card.level { padding: 14px; }
+.level-row .level .level-badge { width: 62px; height: 76px; }
+.level-xp span { white-space: nowrap; }
+.level-xp { font-size: 12px; gap: 6px; }

@@ -1,10 +1,10 @@
 # ME feature list
 
-## Built (version 3.15.0)
+## Built (version 3.15.3)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
-- Account button on Today with your email and Sign out
+- Account and sync status in Settings, with Sign out
 - Data saved on the phone (works offline) and synced to Firebase across devices
 - Export to CSV: workouts (with left/right reps), food log by meal, weigh-ins, check-ins
 - Installs to the home screen on iPhone and Android, with a crossed-swords icon
@@ -41,7 +41,7 @@
 - Frequently used foods and custom items (one-tap add); edit or remove any item
 
 **Targets**
-- Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and daily steps (Mifflin-St Jeor)
+- Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and activity outside the gym (Mifflin-St Jeor)
 
 **History**
 - Workouts by date and by exercise, best-weight chart, strength gained %
@@ -59,7 +59,7 @@
 
 **Look**
 - Themes: Parchment, Stone wall, Dark wood (the whole app follows the level card theme)
-- Burning braziers on the Today screen
+- Fire stands beside the level card, with flames that slowly change colour
 
 ## Still to do
 - Basic foods list loaded (needs one command on your Mac)

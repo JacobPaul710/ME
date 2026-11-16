@@ -3,6 +3,11 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.15.3 (ME patch 8)
+- 3.15.3 Fire stands moved beside the level card, redrawn, and the colour cycle now works on iPhone; home screen icon files renamed so phones pick up the crossed swords.
+- 3.15.2 Sync status and account moved from the top of Today into Settings → Account.
+- 3.15.1 Activity levels described by your day, not by steps (six levels kept).
+
 ## 3.15.0 (ME patch 7)
 - 3.15.0 Burning braziers either side of the Today title, flickering and slowly changing colour.
 - 3.14.0 Activity outside the gym picked by your usual daily steps (six levels).

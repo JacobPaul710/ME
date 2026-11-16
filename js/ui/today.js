@@ -6,7 +6,7 @@ import { MACROS } from '../logic/nutrition.js';
 import * as data from '../data.js';
 import { session } from '../core/auth.js';
 import { themeBackground } from './levelThemes.js';
-import { braziers } from './braziers.js';
+import { braziers, startFlames } from './braziers.js';
 
 // Pick a workout type for a day, then open the logger for that day.
 // A workout only counts once at least one set is logged as done.
@@ -138,23 +138,11 @@ function gearCard(today) {
       : `Get back to 75% to unlock tiers. Next: ${g.next.name} at day ${g.next.day}.`) : null);
 }
 
-// Small, out-of-the-way account button: shows who's signed in, with Sign out.
-function accountButton(ctx) {
-  const email = session()?.user?.email || '';
-  return h('button', { type: 'button', class: 'account-btn', 'aria-label': `Account: ${email}`, onClick: () => {
-    const s = sheet('Account', h('p', { class: 'sub', style: 'margin:0' }, `Signed in as ${email}`), [
-      button('Sign out', () => { s.close(); ctx.signOut(); }, 'block'),
-    ]);
-  } }, (email[0] || '?').toUpperCase());
-}
-
 export function renderToday(root, ctx) {
   const { today, go } = ctx;
   root.append(...[
-    h('div', { class: 'row head-right top-bar' }, ctx.syncBadge(), accountButton(ctx)),
-    (() => { const [l, r] = braziers(); return h('header', { class: 'hero' }, l,
-      h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
-    levelCard(today),
+    header('Today', nice(today)),
+    (() => { const [l, r] = braziers(); startFlames(); return h('div', { class: 'level-row' }, l, levelCard(today), r); })(),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),
     weighCard(today, go),

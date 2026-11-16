@@ -90,7 +90,7 @@ export function renderSettings(root, ctx) {
     button('Save settings', save, 'primary block'),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),
       h('div', { class: 'grid2' }, Object.entries(EXPORTS).map(([k, [label]]) => button(label, () => exportCSV(k))))),
-    card(h('h2', { class: 'card-title' }, 'Account'),
+    card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Account'), ctx.syncBadge()),
       h('div', { class: 'sub' }, user ? `Signed in as ${user.email}` : ''),
       button('Sign out', () => confirmSheet('Sign out?', 'Anything not yet synced stays on this phone and syncs when you sign in again.', 'Sign out', ctx.signOut), 'block')),
     card(h('h2', { class: 'card-title' }, 'Voice cheers'),

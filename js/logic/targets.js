@@ -2,14 +2,14 @@
 // and calories burned in a workout (MET method, Compendium of Physical Activities).
 const LB = 0.45359237, IN = 2.54;
 
-// Activity outside the gym, by your usual daily steps (lifting is added separately).
+// Activity outside the gym (lifting is added separately on the days you train).
 export const ACTIVITY = [
-  ['1.2', 'Under 3,000 steps a day (mostly sitting)'],
-  ['1.3', '3,000–5,000 steps'],
-  ['1.4', '5,000–7,500 steps'],
-  ['1.5', '7,500–10,000 steps'],
-  ['1.6', '10,000–12,500 steps'],
-  ['1.725', 'Over 12,500 steps, or a physical job'],
+  ['1.2', 'Mostly sitting (desk job, little walking)'],
+  ['1.3', 'Lightly active (some walking or errands)'],
+  ['1.4', 'Moderately active (on your feet part of the day)'],
+  ['1.5', 'Active (on your feet most of the day)'],
+  ['1.6', 'Very active (physical work most of the day)'],
+  ['1.725', 'Extremely active (hard physical job)'],
 ];
 // Older saved choices map to the closest new one.
 export const activityValue = (v) => {

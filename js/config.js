@@ -10,4 +10,4 @@ export const ENDPOINTS = {
   firestore: 'https://firestore.googleapis.com/v1',
 };
 
-export const APP_VERSION = '3.15.0';
+export const APP_VERSION = '3.15.3';
