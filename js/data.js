@@ -48,7 +48,8 @@ export function dayStatus(date, today) {
   if (done.length) return { kind: 'workout', dayType: (c && c.dayType) || done[0].dayType };
   return { kind: date === today ? 'today' : 'missed' };
 }
-export const weekDays = (today) => Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+// This week, Sunday to Saturday (same layout as the calendar).
+export const weekDays = (today) => { const start = addDays(today, -parse(today).getDay()); return Array.from({ length: 7 }, (_, i) => addDays(start, i)); };
 
 // ---- level and XP ----
 export function levelInfo(today) {

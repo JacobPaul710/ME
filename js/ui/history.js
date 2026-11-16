@@ -107,6 +107,10 @@ export function renderHistory(root, ctx) {
   root.append(header('History'),
     segmented([['workouts', 'Workouts'], ['food', 'Food'], ['weight', 'Weight']], tab, (v) => ctx.go(`#history/${v}`)));
   if (tab === 'workouts') {
+    const { current, best } = data.streakInfo(ctx.today);
+    root.append(card(h('div', { class: 'row' },
+      h('div', { class: 'grow' }, h('div', { class: 'sub' }, 'Best streak'), h('div', { class: 'best-num' }, `${best} day${best === 1 ? '' : 's'}`)),
+      h('div', { class: 'sub' }, `Now: ${current}`))));
     root.append(segmented([['date', 'By date'], ['exercise', 'By exercise']], state.workoutView, (v) => { state.workoutView = v; ctx.rerender(); }),
       state.workoutView === 'date' ? byDate() : byExercise());
   } else if (tab === 'food') root.append(foodHistory());

@@ -3,6 +3,12 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.18.1 (ME patch 10)
+- 3.18.1 "Hulk mode" targets on every goal: Cut 500 under maintenance with 1.2 g protein per lb; Clean bulk 400 over with 1 g/lb; Dirty bulk 750 over with 1 g/lb.
+- 3.18.0 Settings save by themselves as you change them (no Save button); Calculate fills and saves your targets.
+- 3.17.2 Best streak moved off the streak card to the top of History → Workouts.
+- 3.17.1 Week row now runs Sunday to Saturday, lined up with the calendar below it.
+
 ## 3.17.0 (ME patch 9)
 - 3.17.0 Settings → Preview sounds and messages: hear every sound and see every pop-up and gear tier now.
 - 3.16.0 Food tab simplified: no meal cards; Add food with Scan barcode, Add item and one search bar (Frequently used shows until you type); one Logged today list.

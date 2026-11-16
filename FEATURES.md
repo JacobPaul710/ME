@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.17.0)
+## Built (version 3.18.1)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -12,7 +12,8 @@
 
 **Today**
 - Level card (1–126) with XP bar and crossed swords, in your chosen theme
-- Streak card: current streak, best streak, days to next milestone, last 7 days, this month's calendar
+- Streak card: current streak, days to next milestone, this week (Sunday to Saturday), this month's calendar
+- Best streak at the top of History → Workouts
 - Tap any past day to set it to Rest or Off, or to log a workout for that date
 - Daily check-in: Exercise (Push, Pull, Legs, Back, Forearms), Rest or Off
 - Weigh-in card (yellow until logged, green after)
@@ -42,7 +43,8 @@
 - Frequently used foods and your own items (one-tap add)
 
 **Targets**
-- Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and activity outside the gym (Mifflin-St Jeor)
+- Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and activity outside the gym (Mifflin-St Jeor), set for maximum muscle: Cut −500 cal / 1.2 g protein per lb, Clean bulk +400 / 1 g, Dirty bulk +750 / 1 g
+- Settings save automatically as you change them
 
 **History**
 - Workouts by date and by exercise, best-weight chart, strength gained %

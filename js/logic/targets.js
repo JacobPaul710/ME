@@ -22,10 +22,11 @@ export const GOALS = [
   ['clean', 'Clean bulk (lean muscle)'],
   ['dirty', 'Dirty bulk (gain fast)'],
 ];
+// Built for maximum muscle ("Hulk mode") on every goal.
 const GOAL_RULES = {
-  cut: { adjust: -500, proteinPerLb: 1.0 },   // ~1 lb a week; high protein protects muscle
-  clean: { adjust: 250, proteinPerLb: 0.8 },  // small surplus keeps the gain mostly muscle
-  dirty: { adjust: 500, proteinPerLb: 0.8 },  // bigger surplus: faster gain, more of it fat
+  cut: { adjust: -500, proteinPerLb: 1.2 },   // ~1 lb a week; very high protein holds on to muscle
+  clean: { adjust: 400, proteinPerLb: 1.0 },  // solid surplus, mostly muscle
+  dirty: { adjust: 750, proteinPerLb: 1.0 },  // big surplus for the fastest gain (more fat comes with it)
 };
 
 // Age today from a birthday ('YYYY-MM-DD').

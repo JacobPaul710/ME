@@ -1,4 +1,4 @@
-// Streak card: streak + best + countdown, the last 7 days, and this month's calendar.
+// Streak card: streak + countdown, this week (Sunday to Saturday), and this month's calendar.
 import { h, svg } from './dom.js';
 import { nextMilestone, milestoneName } from '../logic/streak.js';
 import { parse, iso } from '../logic/dates.js';
@@ -21,7 +21,9 @@ function weekRow(today, onDay) {
     const st = data.dayStatus(d, today);
     return h('div', { class: 'week-day' },
       h('span', { class: 'sub' }, parse(d).toLocaleDateString('en-US', { weekday: 'narrow' })),
-      h('button', { type: 'button', class: `daymark ${st.kind}`, 'aria-label': `${label(d, st)}. Tap to change`, onClick: () => onDay(d) }, mark(st)));
+      st.kind === 'future'
+        ? h('span', { class: 'daymark future', 'aria-hidden': 'true' })
+        : h('button', { type: 'button', class: `daymark ${st.kind}`, 'aria-label': `${label(d, st)}. Tap to change`, onClick: () => onDay(d) }, mark(st)));
   }));
 }
 
@@ -47,15 +49,14 @@ const legend = () => h('div', { class: 'legend' },
   [['workout', 'Workout'], ['rest', 'Rest'], ['off', 'Off'], ['missed', 'Not checked in']].map(([k, t]) =>
     h('span', { class: 'legend-item' }, h('span', { class: `daymark mini ${k}`, 'aria-hidden': 'true' }), t)));
 
-export function streakWidget({ current, best }, today, onDay = () => {}) {
+export function streakWidget({ current }, today, onDay = () => {}) {
   const next = nextMilestone(current);
   return h('section', { class: 'card streak', 'aria-label': 'Streak' },
     h('div', { class: 'row' },
       h('span', { class: `flame${current ? '' : ' cold'}` }, svg(FLAME)),
       h('div', { class: 'grow' },
         h('div', { class: 'streak-num' }, String(current), h('span', null, ' day streak')),
-        h('div', { class: 'sub' }, `${next - current} day${next - current === 1 ? '' : 's'} to ${milestoneName(next)}`)),
-      h('div', { class: 'best' }, h('div', { class: 'sub' }, 'Best'), h('div', { class: 'best-num' }, String(best)))),
+        h('div', { class: 'sub' }, `${next - current} day${next - current === 1 ? '' : 's'} to ${milestoneName(next)}`))),
     weekRow(today, onDay),
     month(today, onDay),
     legend());

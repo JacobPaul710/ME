@@ -85,14 +85,21 @@ export function renderSettings(root, ctx) {
     const t = data.calculateTargets(profile());
     if (!t) { toast('Fill in birthday, height and weight first'); return; }
     inputs.cal.value = t.cal; inputs.p.value = t.p; inputs.c.value = t.c; inputs.f.value = t.f;
-    toast(`Maintenance ≈ ${t.maintain} cal, ${t.adjust > 0 ? '+' : ''}${t.adjust} for your goal. Tap Save settings.`);
+    save();
+    toast(`Targets set: maintenance ≈ ${t.maintain} cal, ${t.adjust > 0 ? '+' : ''}${t.adjust} for your goal.`);
   };
+  // Everything here saves by itself as you change it.
   const save = async () => {
     const targets = Object.fromEntries(MACROS.map((m) => [m.key, inputs[m.key].value === '' ? null : Math.max(0, +inputs[m.key].value)]));
     const n = Math.max(1, Math.round(+sessions.value || 4));
     await data.saveSettings({ ...data.settings(), targets, sessionsToAdvance: n, standards: sexSel.value, profile: profile() });
-    toast('Settings saved');
   };
+  let timer;
+  const soon = () => { clearTimeout(timer); timer = setTimeout(save, 400); };
+  for (const el of [...Object.values(inputs), sessions, sexSel, bday, ft, inch, wt, goalSel, act]) {
+    el.addEventListener('input', soon);
+    el.addEventListener('change', () => { clearTimeout(timer); save(); });
+  }
   const user = session()?.user;
   root.append(
     header('Settings'),
@@ -107,7 +114,6 @@ export function renderSettings(root, ctx) {
       h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), inputs[m.key])))),
     card(h('h2', { class: 'card-title' }, 'Rep goal'),
       field('Sessions in a row before the rep goal goes up', sessions)),
-    button('Save settings', save, 'primary block'),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),
       h('div', { class: 'grid2' }, Object.entries(EXPORTS).map(([k, [label]]) => button(label, () => exportCSV(k))))),
     card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Account'), ctx.syncBadge()),
