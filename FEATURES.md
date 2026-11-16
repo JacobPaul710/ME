@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.11.1)
+## Built (version 3.15.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -41,7 +41,7 @@
 - Frequently used foods and custom items (one-tap add); edit or remove any item
 
 **Targets**
-- Calculator from sex, age, height, weight, goal weight and activity (Mifflin-St Jeor)
+- Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and daily steps (Mifflin-St Jeor)
 
 **History**
 - Workouts by date and by exercise, best-weight chart, strength gained %
@@ -59,6 +59,7 @@
 
 **Look**
 - Themes: Parchment, Stone wall, Dark wood (the whole app follows the level card theme)
+- Burning braziers on the Today screen
 
 ## Still to do
 - Basic foods list loaded (needs one command on your Mac)

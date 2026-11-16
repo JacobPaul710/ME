@@ -3,6 +3,12 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.15.0 (ME patch 7)
+- 3.15.0 Burning braziers either side of the Today title, flickering and slowly changing colour.
+- 3.14.0 Activity outside the gym picked by your usual daily steps (six levels).
+- 3.13.0 Goal picker replaces goal weight: Cut, Clean bulk or Dirty bulk, each with its own calories and protein.
+- 3.12.0 Birthday replaces age, so your age updates by itself.
+
 ## 3.11.1 (ME patch 6)
 - 3.11.1 New home screen icon: crossed swords.
 - 3.11.0 Rest timer between sets (1 to 3 minutes, set on the Workout tab).

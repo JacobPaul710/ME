@@ -2,31 +2,57 @@
 // and calories burned in a workout (MET method, Compendium of Physical Activities).
 const LB = 0.45359237, IN = 2.54;
 
+// Activity outside the gym, by your usual daily steps (lifting is added separately).
 export const ACTIVITY = [
-  ['1.2', 'Mostly sitting (desk job)'],
-  ['1.375', 'Lightly active (on your feet some of the day)'],
-  ['1.55', 'Active (on your feet most of the day)'],
-  ['1.725', 'Very active (physical job)'],
+  ['1.2', 'Under 3,000 steps a day (mostly sitting)'],
+  ['1.3', '3,000–5,000 steps'],
+  ['1.4', '5,000–7,500 steps'],
+  ['1.5', '7,500–10,000 steps'],
+  ['1.6', '10,000–12,500 steps'],
+  ['1.725', 'Over 12,500 steps, or a physical job'],
 ];
+// Older saved choices map to the closest new one.
+export const activityValue = (v) => {
+  const n = +v || 1.2;
+  return ACTIVITY.reduce((best, [x]) => (Math.abs(+x - n) < Math.abs(+best - n) ? x : best), ACTIVITY[0][0]);
+};
+
+export const GOALS = [
+  ['cut', 'Cut (lose fat, keep muscle)'],
+  ['clean', 'Clean bulk (lean muscle)'],
+  ['dirty', 'Dirty bulk (gain fast)'],
+];
+const GOAL_RULES = {
+  cut: { adjust: -500, proteinPerLb: 1.0 },   // ~1 lb a week; high protein protects muscle
+  clean: { adjust: 250, proteinPerLb: 0.8 },  // small surplus keeps the gain mostly muscle
+  dirty: { adjust: 500, proteinPerLb: 0.8 },  // bigger surplus: faster gain, more of it fat
+};
+
+// Age today from a birthday ('YYYY-MM-DD').
+export function ageFrom(birthday, today = new Date()) {
+  if (!birthday) return null;
+  const [y, m, d] = birthday.split('-').map(Number);
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
+  return age > 0 && age < 120 ? age : null;
+}
 
 export function bmr({ sex, age, heightIn, weightLb }) {
   const kg = weightLb * LB, cm = heightIn * IN;
   return 10 * kg + 6.25 * cm - 5 * age + (sex === 'women' ? -161 : 5);
 }
 
-// Workouts are not in the activity level: their calories are added on the day you train.
-export function dailyTargets(p) {
-  if (!(p.age > 0 && p.heightIn > 0 && p.weightLb > 0)) return null;
-  const maintain = bmr(p) * (+p.activity || 1.2);
-  const goal = +p.goalLb || p.weightLb;
-  const diff = goal - p.weightLb;
-  // Lose about 1 lb a week, or gain slowly (lean gain) to keep fat low.
-  const adjust = diff < -1 ? -500 : diff > 1 ? 250 : 0;
-  const cal = Math.round((maintain + adjust) / 10) * 10;
-  const p_ = Math.round(0.8 * Math.max(p.weightLb, goal > p.weightLb ? goal : p.weightLb)); // 0.8 g per lb
+// p: { sex, birthday (or age), heightIn, weightLb, activity, goal: 'cut' | 'clean' | 'dirty' }
+export function dailyTargets(p, today = new Date()) {
+  const age = ageFrom(p.birthday, today) || +p.age || null;
+  if (!(age > 0 && p.heightIn > 0 && p.weightLb > 0)) return null;
+  const rule = GOAL_RULES[p.goal] || GOAL_RULES.clean;
+  const maintain = bmr({ ...p, age }) * (+p.activity || 1.2);
+  const cal = Math.round((maintain + rule.adjust) / 10) * 10;
+  const protein = Math.round(rule.proteinPerLb * p.weightLb);
   const f = Math.round((cal * 0.25) / 9);
-  const c = Math.max(0, Math.round((cal - p_ * 4 - f * 9) / 4));
-  return { cal, p: p_, c, f, maintain: Math.round(maintain), adjust };
+  const c = Math.max(0, Math.round((cal - protein * 4 - f * 9) / 4));
+  return { cal, p: protein, c, f, maintain: Math.round(maintain), adjust: rule.adjust, age };
 }
 
 // MET 3.5 = resistance training, multiple exercises, 8–15 reps (2024 Compendium, code 02054).

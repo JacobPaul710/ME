@@ -6,6 +6,7 @@ import { MACROS } from '../logic/nutrition.js';
 import * as data from '../data.js';
 import { session } from '../core/auth.js';
 import { themeBackground } from './levelThemes.js';
+import { braziers } from './braziers.js';
 
 // Pick a workout type for a day, then open the logger for that day.
 // A workout only counts once at least one set is logged as done.
@@ -150,7 +151,9 @@ function accountButton(ctx) {
 export function renderToday(root, ctx) {
   const { today, go } = ctx;
   root.append(...[
-    header('Today', nice(today), h('div', { class: 'row head-right' }, ctx.syncBadge(), accountButton(ctx))),
+    h('div', { class: 'row head-right top-bar' }, ctx.syncBadge(), accountButton(ctx)),
+    (() => { const [l, r] = braziers(); return h('header', { class: 'hero' }, l,
+      h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
     levelCard(today),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),

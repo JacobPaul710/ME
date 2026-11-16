@@ -7,7 +7,7 @@ import { session } from '../core/auth.js';
 import { APP_VERSION } from '../config.js';
 import * as data from '../data.js';
 import { LEVEL_THEMES } from './levelThemes.js';
-import { ACTIVITY } from '../logic/targets.js';
+import { ACTIVITY, GOALS, activityValue } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
 import { levelCardView } from './today.js';
 import { iso as todayIso } from '../logic/dates.js';
@@ -54,18 +54,18 @@ export function renderSettings(root, ctx) {
   const sessions = numberInput(s.sessionsToAdvance, { inputmode: 'numeric', step: '1', min: '1', 'aria-label': 'Sessions in a row' });
   const pr = s.profile || {};
   const sexSel = h('select', null, h('option', { value: 'men', selected: s.standards !== 'women' }, 'Male'), h('option', { value: 'women', selected: s.standards === 'women' }, 'Female'));
-  const age = numberInput(pr.age, { inputmode: 'numeric', step: '1' });
+  const bday = h('input', { type: 'date', value: pr.birthday || '', max: new Date().toISOString().slice(0, 10) });
   const ft = numberInput(pr.heightIn ? Math.floor(pr.heightIn / 12) : '', { inputmode: 'numeric', step: '1' });
   const inch = numberInput(pr.heightIn ? Math.round(pr.heightIn % 12) : '', { inputmode: 'numeric', step: '1' });
   const wt = numberInput(data.bodyweight() || pr.weightLb || '', {});
-  const goalWt = numberInput(pr.goalLb, {});
-  const act = h('select', null, ACTIVITY.map(([v, label]) => h('option', { value: v, selected: String(pr.activity || '1.2') === v }, label)));
-  const profile = () => ({ age: +age.value || null, heightIn: (+ft.value || 0) * 12 + (+inch.value || 0) || null, weightLb: +wt.value || null, goalLb: +goalWt.value || null, activity: act.value });
+  const goalSel = h('select', null, GOALS.map(([v, label]) => h('option', { value: v, selected: (pr.goal || 'clean') === v }, label)));
+  const act = h('select', null, ACTIVITY.map(([v, label]) => h('option', { value: v, selected: activityValue(pr.activity) === v }, label)));
+  const profile = () => ({ birthday: bday.value || null, heightIn: (+ft.value || 0) * 12 + (+inch.value || 0) || null, weightLb: +wt.value || null, goal: goalSel.value, activity: act.value });
   const calc = () => {
     const t = data.calculateTargets(profile());
-    if (!t) { toast('Fill in age, height and weight first'); return; }
+    if (!t) { toast('Fill in birthday, height and weight first'); return; }
     inputs.cal.value = t.cal; inputs.p.value = t.p; inputs.c.value = t.c; inputs.f.value = t.f;
-    toast(`Maintenance ≈ ${t.maintain} cal${t.adjust ? `, ${t.adjust > 0 ? '+' : ''}${t.adjust} for your goal` : ''}. Tap Save settings.`);
+    toast(`Maintenance ≈ ${t.maintain} cal, ${t.adjust > 0 ? '+' : ''}${t.adjust} for your goal. Tap Save settings.`);
   };
   const save = async () => {
     const targets = Object.fromEntries(MACROS.map((m) => [m.key, inputs[m.key].value === '' ? null : Math.max(0, +inputs[m.key].value)]));
@@ -77,9 +77,9 @@ export function renderSettings(root, ctx) {
   root.append(
     header('Settings'),
     card(h('h2', { class: 'card-title' }, 'Your details'),
-      h('div', { class: 'grid2' }, field('Sex', sexSel), field('Age', age)),
+      h('div', { class: 'grid2' }, field('Sex', sexSel), field('Birthday', bday)),
       h('div', { class: 'grid2' }, field('Height (feet)', ft), field('Height (inches)', inch)),
-      h('div', { class: 'grid2' }, field('Weight (lb)', wt), field('Goal weight (lb)', goalWt)),
+      h('div', { class: 'grid2' }, field('Weight (lb)', wt), field('Goal', goalSel)),
       field('Activity outside the gym', act),
       h('p', { class: 'sub', style: 'margin:0' }, 'Workouts are added on the days you train, so leave them out of activity.'),
       button('Calculate my targets', calc, 'block')),
