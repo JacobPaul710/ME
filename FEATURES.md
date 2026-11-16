@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.18.1)
+## Built (version 3.21.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -62,7 +62,15 @@
 
 - Preview every sound, pop-up and gear tier from Settings
 
+**Character**
+- Character tab: figure wears your current gear tier; overall level and streak
+- 10 skills on the same 1–126 curve: Attack (Push reps), Strength (Legs reps), Defence (Pull and Back reps),
+  Agility (cardio minutes), Hitpoints (weigh-ins), Discipline (streak days), Cooking (days at protein target),
+  Stamina (sets), Mastery (weight increases), Herblore (supplements taken)
+- Supplements set up in Settings with suggested amounts from your details; daily check-off on the Food tab
+
 **Look**
+- Bottom bar: Today, Workout, Food, History, Character; Settings in a ☰ side menu
 - Themes: Parchment, Stone wall, Dark wood (the whole app follows the level card theme)
 - Wall sconces either side of the Today title, with flames that change colour together
 

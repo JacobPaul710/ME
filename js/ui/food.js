@@ -1,5 +1,5 @@
 import { h, fmt } from './dom.js';
-import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
+import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light } from './components.js';
 import { nice } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
 import { search } from '../logic/foods.js';
@@ -234,6 +234,20 @@ function loggedToday(date) {
       h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`)))) : empty('Nothing logged yet today.'));
 }
 
+// Daily supplement check-in (set the list in ☰ Settings → Supplements).
+function supplementsCard(date) {
+  const list = data.supplements();
+  if (!list.length) return null;
+  const taken = new Set(data.suppTaken(date));
+  const n = list.filter((x) => taken.has(x.id)).length;
+  return h('section', { class: 'card', 'aria-label': 'Supplements' },
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Supplements'), h('span', { class: 'sub' }, `${n} of ${list.length}`)),
+    h('div', { class: 'list' }, list.map((x) => h('div', { class: 'item' },
+      light(taken.has(x.id), () => data.toggleSupp(date, x.id), `${x.name} ${taken.has(x.id) ? 'taken' : 'not taken'}`),
+      h('button', { type: 'button', class: 'item-main', onClick: () => data.toggleSupp(date, x.id) },
+        h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, x.dose || ''))))));
+}
+
 export function renderFood(root, ctx) {
   const { today } = ctx;
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
@@ -245,5 +259,6 @@ export function renderFood(root, ctx) {
     header('Food', nice(today)),
     summaryCard(today),
     addSection,
-    loggedToday(today)].filter(Boolean));
+    loggedToday(today),
+    supplementsCard(today)].filter(Boolean));
 }

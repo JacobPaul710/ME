@@ -3,6 +3,11 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.21.0 (ME patch 11)
+- 3.21.0 Supplements: add them in Settings (amounts worked out from your weight and sex), check them off daily on the Food tab; each one levels up Herblore.
+- 3.20.0 Settings moved to a side menu: tap ☰ at the top of any screen; close by tapping outside, ✕, swiping left or tapping a tab.
+- 3.19.0 Character tab: your figure in your gear tier, overall level, streak, and 10 skills (Attack, Strength, Defence, Agility, Hitpoints, Discipline, Cooking, Stamina, Mastery, Herblore). Tap a skill to see how it levels.
+
 ## 3.18.1 (ME patch 10)
 - 3.18.1 "Hulk mode" targets on every goal: Cut 500 under maintenance with 1.2 g protein per lb; Clean bulk 400 over with 1 g/lb; Dirty bulk 750 over with 1 g/lb.
 - 3.18.0 Settings save by themselves as you change them (no Save button); Calculate fills and saves your targets.

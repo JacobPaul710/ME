@@ -10,6 +10,7 @@ import { totalXP, progress as levelProgress } from './logic/levels.js';
 import { workoutDates, gearStatus } from './logic/gear.js';
 import { dailyTargets, workoutMinutes, workoutCalories, intakeCheck } from './logic/targets.js';
 import { seedRecords } from './seed.js';
+import { skillLevels } from './logic/skills.js';
 import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
 import { addDays, parse, iso } from './logic/dates.js';
 
@@ -246,6 +247,33 @@ export async function logFood(date, food, amount, unit, meal = mealNow()) {
   });
 }
 export const removeLog = (id) => store.remove(id);
+
+// ---- supplements (list lives in settings; one check-in record per day) ----
+export const supplements = () => settings().supplements || [];
+export const setSupplements = (list) => saveSettings({ ...settings(), supplements: list });
+export const suppTaken = (date) => (store.get('supp:' + date) || {}).taken || [];
+export function toggleSupp(date, id) {
+  const t = suppTaken(date);
+  return store.put('supp', 'supp:' + date, { date, taken: t.includes(id) ? t.filter((x) => x !== id) : [...t, id] });
+}
+// Each day counts as the share of your current supplements you took (all = 1).
+export function suppDays() {
+  const ids = new Set(supplements().map((s) => s.id));
+  if (!ids.size) return 0;
+  return store.all('supp').reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
+}
+
+// ---- skills ----
+export function skillInfo(today) {
+  const target = +settings().targets.p || 0;
+  return skillLevels({
+    sets: allSets(), exercises: exercises(),
+    streakDays: new Set(streakInfo(today).dates),
+    weighins: weighins().length,
+    proteinDays: target ? foodDays().filter((d) => d.totals.p >= target).length : 0,
+    suppDays: suppDays(),
+  });
+}
 
 // Food days, newest first: [{date, totals}]
 export function foodDays() {

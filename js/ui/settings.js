@@ -9,6 +9,7 @@ import * as data from '../data.js';
 import { LEVEL_THEMES } from './levelThemes.js';
 import { ACTIVITY, GOALS, activityValue } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
+import { PRESETS, suggest } from '../logic/supplements.js';
 import { sfx } from '../core/sfx.js';
 import { cheer } from '../core/cheers.js';
 import { celebrate, levelUp, tierUnlocked } from '../celebrations.js';
@@ -68,6 +69,46 @@ function themePicker(current) {
       levelCardView(L, id)))));
 }
 
+// ---- supplements: what you take, checked off daily on the Food tab ----
+const details = () => { const s = data.settings(); return { ...(s.profile || {}), sex: s.standards, weightLb: data.bodyweight() || (s.profile || {}).weightLb }; };
+const newId = () => 'sp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+function editSupplement(item) {
+  const list = data.supplements();
+  const name = h('input', { type: 'text', value: item?.name || '', placeholder: 'e.g. Creatine' });
+  const dose = h('input', { type: 'text', value: item?.dose || '', placeholder: 'e.g. 5 g' });
+  const s = sheet(item ? 'Edit supplement' : 'Other supplement', h('div', { class: 'stack' }, field('Name', name), field('Amount per day', dose)), [
+    button('Save', async () => {
+      if (!name.value.trim()) { name.focus(); return; }
+      const rec = { id: item?.id || newId(), name: name.value.trim(), dose: dose.value.trim() };
+      await data.setSupplements(item ? list.map((x) => (x.id === item.id ? rec : x)) : [...list, rec]);
+      s.close();
+    }, 'primary block'),
+    item ? button('Remove', async () => { await data.setSupplements(list.filter((x) => x.id !== item.id)); s.close(); }, 'danger block') : null,
+  ].filter(Boolean));
+}
+
+function addSupplementSheet() {
+  const have = new Set(data.supplements().map((x) => x.preset).filter(Boolean));
+  const p = details();
+  const s = sheet('Add supplement', h('div', { class: 'stack' },
+    h('p', { class: 'sub', style: 'margin:0' }, 'Amounts are worked out from your details above. Typical research doses, not medical advice.'),
+    h('div', { class: 'list' }, PRESETS.filter((x) => !have.has(x.id)).map((x) => h('button', { type: 'button', class: 'item item-main', onClick: async () => {
+      await data.setSupplements([...data.supplements(), { id: newId(), preset: x.id, name: x.name, dose: suggest(x.id, p) }]);
+      s.close(); toast(`${x.name} added`);
+    } }, h('span', { class: 'item-name' }, `${x.name} · ${suggest(x.id, p)}`), h('span', { class: 'sub' }, x.note))))),
+  [button('Other…', () => { s.close(); editSupplement(null); }, 'block')]);
+}
+
+function supplementsCard() {
+  const list = data.supplements();
+  return card(h('h2', { class: 'card-title' }, 'Supplements'),
+    h('p', { class: 'sub', style: 'margin:0' }, 'Check them off each day on the Food tab. Each one levels up Herblore.'),
+    list.length ? h('div', { class: 'list' }, list.map((x) => h('button', { type: 'button', class: 'item item-main', 'aria-label': `Edit ${x.name}`, onClick: () => editSupplement(x) },
+      h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, x.dose || '')))) : null,
+    button('Add supplement', addSupplementSheet, 'block'));
+}
+
 export function renderSettings(root, ctx) {
   const s = data.settings();
   const inputs = Object.fromEntries(MACROS.map((m) => [m.key, numberInput(s.targets[m.key], { 'aria-label': `${m.label} target` })]));
@@ -102,7 +143,7 @@ export function renderSettings(root, ctx) {
   }
   const user = session()?.user;
   root.append(
-    header('Settings'),
+    header('Settings', null, ctx.closeMenu ? h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close menu', onClick: ctx.closeMenu }, '✕') : null),
     card(h('h2', { class: 'card-title' }, 'Your details'),
       h('div', { class: 'grid2' }, field('Sex', sexSel), field('Birthday', bday)),
       h('div', { class: 'grid2' }, field('Height (feet)', ft), field('Height (inches)', inch)),
@@ -112,6 +153,7 @@ export function renderSettings(root, ctx) {
       button('Calculate my targets', calc, 'block')),
     card(h('h2', { class: 'card-title' }, 'Daily targets'),
       h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), inputs[m.key])))),
+    supplementsCard(),
     card(h('h2', { class: 'card-title' }, 'Rep goal'),
       field('Sessions in a row before the rep goal goes up', sessions)),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),

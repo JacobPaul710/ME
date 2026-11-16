@@ -13,7 +13,7 @@ export const MAX = 126;
 // [level, weeks of steady training to reach it]
 const ANCHORS = [[1, 0], [10, 1.5], [30, 5], [55, 12], [75, 26], [90, 44], [100, 58], [110, 74], [120, 92], [126, 104]];
 // Expected XP per week: about 2,000 at the start, rising as weights go up.
-const cumXP = (w) => 2000 * w + (500 * w * w) / 104;
+export const cumXP = (w) => 2000 * w + (500 * w * w) / 104;
 
 function weeksAt(L) {
   for (let i = 1; i < ANCHORS.length; i++) {

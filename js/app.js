@@ -15,6 +15,7 @@ import { renderTrain } from './ui/train.js';
 import { renderFood } from './ui/food.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
+import { renderCharacter } from './ui/character.js';
 
 const app = document.getElementById('app');
 const tabs = document.getElementById('tabs');
@@ -24,17 +25,56 @@ const ICONS = {
   train: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   food: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   history: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  settings: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  character: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="7.5" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4.5 3.6-8 8-8s8 3.5 8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
 };
 const SCREENS = {
   today: ['Today', renderToday],
   train: ['Workout', renderTrain],
   food: ['Food', renderFood],
   history: ['History', renderHistory],
-  settings: ['Settings', renderSettings],
+  character: ['Character', renderCharacter],
 };
 
+// Settings live in a menu that slides in from the left (☰ at the top of every screen).
+let menuOpen = false;
+function openMenu() {
+  menuOpen = true;
+  closeAllSheets();
+  render();
+  document.querySelector('.drawer')?.focus();
+}
+function closeMenu() {
+  if (!menuOpen) return;
+  const wrap = document.querySelector('.drawer-wrap');
+  menuOpen = false;
+  if (!wrap) return;
+  wrap.classList.add('closing');
+  setTimeout(() => wrap.remove(), 180);
+  document.querySelector('.menu-btn')?.setAttribute('aria-expanded', 'false');
+}
+function drawMenu() {
+  const old = document.querySelector('.drawer-wrap');
+  if (!menuOpen) { old?.remove(); return; }
+  const body = h('div', { class: 'stack' });
+  renderSettings(body, { ...ctxBase, today: iso(), closeMenu });
+  const drawer = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Settings', tabindex: '-1' }, body);
+  let x0 = null;
+  drawer.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  drawer.addEventListener('touchend', (e) => { if (x0 != null && e.changedTouches[0].clientX - x0 < -70) closeMenu(); x0 = null; });
+  const wrap = h('div', { class: 'drawer-wrap', onClick: (e) => { if (e.target === wrap) closeMenu(); } }, drawer);
+  if (old) { drawer.scrollTop = old.querySelector('.drawer').scrollTop; old.replaceWith(wrap); wrap.classList.add('still'); }
+  else document.body.append(wrap);
+}
+function menuButton() {
+  return h('button', { type: 'button', class: 'menu-btn', 'aria-label': 'Menu', 'aria-expanded': menuOpen ? 'true' : 'false', onClick: () => (menuOpen ? closeMenu() : openMenu()) },
+    svg('<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'));
+}
+
 function route() {
+  if (location.hash.startsWith('#settings')) { // old links: open the menu over Today
+    history.replaceState(null, '', '#today');
+    menuOpen = true;
+  }
   const [screen, sub] = location.hash.replace(/^#/, '').split('/');
   return { screen: SCREENS[screen] ? screen : 'today', sub };
 }
@@ -71,7 +111,9 @@ let pending = false;
 function render() {
   applyTheme();
   const view = document.getElementById('view');
-  if (view && view.contains(document.activeElement) && document.activeElement.matches('input, select, textarea')) {
+  const busy = document.activeElement?.matches?.('input, select, textarea') &&
+    (view?.contains(document.activeElement) || document.querySelector('.drawer')?.contains(document.activeElement));
+  if (busy) {
     pending = true; // don't redraw under the user's fingers
     return;
   }
@@ -80,8 +122,10 @@ function render() {
   const y = window.scrollY;
   const sameScreen = view && view.dataset.screen === screen;
   const root = h('div', { id: 'view', 'data-screen': screen, class: 'stack' });
+  root.append(menuButton());
   SCREENS[screen][1](root, { ...ctxBase, today: iso(), sub });
   if (view) view.replaceWith(root); else app.replaceChildren(root);
+  drawMenu();
   window.scrollTo(0, sameScreen ? y : 0);
   for (const a of tabs.querySelectorAll('a')) a.setAttribute('aria-current', a.dataset.screen === screen ? 'page' : 'false');
 }
@@ -90,6 +134,7 @@ function drawTabs() {
   tabs.replaceChildren(...Object.entries(SCREENS).map(([id, [label]]) =>
     h('a', { href: `#${id}`, 'data-screen': id }, svg(ICONS[id]), h('span', null, label))));
   tabs.hidden = false;
+  tabs.onclick = () => closeMenu();
 }
 
 // One pop-up at a time (each with its own sound/voice): streak milestone, then
@@ -160,7 +205,8 @@ function doSignOut() {
   location.reload();
 }
 
-window.addEventListener('hashchange', () => { closeAllSheets(); render(); });
+window.addEventListener('hashchange', () => { closeAllSheets(); if (!location.hash.startsWith('#settings')) closeMenu(); render(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
 window.addEventListener('tracker-signed-out', () => location.reload());
 window.addEventListener('tracker-popup-closed', () => setTimeout(checkMilestone, 300));
