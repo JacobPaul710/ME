@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.15.3)
+## Built (version 3.17.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -33,12 +33,13 @@
 - Cardio by minutes and optional miles
 
 **Food**
-- Diary by meal: Breakfast, Lunch, Dinner, Snacks, with every item's calories and macros
+- Add food: pick the meal, Scan barcode, Add item, and one search bar (Frequently used shows until you type)
+- Logged today: every item with calories and macros; tap to change or remove
 - Goal + Exercise − Food = Remaining; protein, carbs and fat with % of calories
 - Workout calories estimated from how long you lifted and your bodyweight
 - "Fuel for muscle growth" check on training days (protein, calories, carbs)
 - Search the basic foods list (offline) and Open Food Facts (online); barcode scanner
-- Frequently used foods and custom items (one-tap add); edit or remove any item
+- Frequently used foods and your own items (one-tap add)
 
 **Targets**
 - Calculator from sex, birthday, height, weight, goal (Cut, Clean bulk, Dirty bulk) and activity outside the gym (Mifflin-St Jeor)
@@ -57,9 +58,11 @@
 - Voice prompts for tiers, level-ups and milestones (drop clips in audio/voice),
   and voice cheers for sets (audio/cheers); only one pop-up or sound at a time
 
+- Preview every sound, pop-up and gear tier from Settings
+
 **Look**
 - Themes: Parchment, Stone wall, Dark wood (the whole app follows the level card theme)
-- Fire stands beside the level card, with flames that slowly change colour
+- Wall sconces either side of the Today title, with flames that change colour together
 
 ## Still to do
 - Basic foods list loaded (needs one command on your Mac)

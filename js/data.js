@@ -14,8 +14,7 @@ import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
 import { addDays, parse, iso } from './logic/dates.js';
 
 export const DAY_TYPES = [
-  { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Forearms' },
-  { id: 'Back' },
+  { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Back' }, { id: 'Forearms' },
 ];
 
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);

@@ -58,7 +58,7 @@ export function customSheet(today, prefill = {}) {
   const nums = Object.fromEntries(MACROS.map((m) => [m.key, numberInput('')]));
   const read = () => ({ name: name.value, servingLabel: serving.value, cal: nums.cal.value, p: nums.p.value, c: nums.c.value, f: nums.f.value });
   const valid = () => { if (!name.value.trim()) { toast('Enter a name'); return false; } return true; };
-  const s = sheet('Custom item', h('div', { class: 'stack' },
+  const s = sheet('Add item', h('div', { class: 'stack' },
     field('Name', name),
     field('Serving (what the numbers are for)', serving),
     h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), nums[m.key])))), [
@@ -94,7 +94,7 @@ function scanSheet(today) {
     } catch (e) {
       msg.textContent = e.message;
     }
-    extra.replaceChildren(button('Create a custom item', () => { s.close(); customSheet(today); }, 'block'));
+    extra.replaceChildren(button('Add it as a new item', () => { s.close(); customSheet(today); }, 'block'));
   }).then((fn) => { stop = fn; if (!s.panel.isConnected) fn(); else msg.textContent = 'Point the camera at the barcode.'; })
     .catch((e) => {
       video.remove();
@@ -122,7 +122,7 @@ function searchPanel(today) {
   const results = h('div', { class: 'list' });
   const draw = async () => {
     const q = state.q.trim();
-    if (!q) { results.replaceChildren(empty('Type a food. Basic foods and your saved items work offline.')); return; }
+    if (!q) { results.replaceChildren(h('h3', { class: 'list-head' }, 'Frequently used'), savedPanel(today)); return; }
     const local = search(q, [...data.savedFoods(), ...(await usdaFoods())], 25);
     if (q !== state.q.trim()) return; // typed again meanwhile
     const kids = local.map((f) => foodRow(f, today, false));
@@ -151,7 +151,7 @@ function searchPanel(today) {
 
 function savedPanel(today) {
   const foods = data.savedFoods();
-  if (!foods.length) return empty('Nothing saved yet. Open any food and tap "Save to Frequently used", or create a custom item.');
+  if (!foods.length) return empty('Nothing saved yet. Open any food and tap "Save to Frequently used", or tap Add item.');
   return h('div', { class: 'list' }, foods.map((f) => foodRow(f, today, true)));
 }
 
@@ -225,25 +225,25 @@ function summaryCard(date) {
     h('ul', { class: 'fuel-list' }, notes.map((n) => h('li', null, n.text)))) : null);
 }
 
+// Everything eaten today in one list; tap an item to change its amount or remove it.
+function loggedToday(date) {
+  const logs = data.foodLogs(date);
+  return card(h('h2', { class: 'card-title' }, 'Logged today'),
+    logs.length ? h('div', { class: 'list' }, logs.map((l) => h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) },
+      h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, `${fmt(l.cal)} cal`)),
+      h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`)))) : empty('Nothing logged yet today.'));
+}
+
 export function renderFood(root, ctx) {
   const { today } = ctx;
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
-    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Add food')),
+    h('h2', { class: 'card-title' }, 'Add food'),
     h('div', { class: 'field' }, h('span', null, 'Adding to'), segmented(data.MEALS, state.meal, (v) => { state.meal = v; ctx.rerender(); })),
-    h('div', { class: 'grid2' }, button('Scan barcode', () => scanSheet(today)), button('Custom item', () => customSheet(today))),
-    segmented([['search', 'Search'], ['saved', 'Frequently used']], state.tab, (v) => { state.tab = v; ctx.rerender(); }),
-    state.tab === 'search' ? searchPanel(today) : savedPanel(today));
-  const onAdd = (meal) => {
-    state.meal = meal;
-    ctx.rerender();
-    requestAnimationFrame(() => {
-      document.getElementById('add-food')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      document.querySelector('#add-food input[type=search]')?.focus({ preventScroll: true });
-    });
-  };
-  root.append(
+    h('div', { class: 'grid2' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today))),
+    searchPanel(today));
+  root.append(...[
     header('Food', nice(today)),
     summaryCard(today),
-    mealBreakdown(today, { editable: true, onAdd }),
-    addSection);
+    addSection,
+    loggedToday(today)].filter(Boolean));
 }

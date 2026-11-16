@@ -3,6 +3,12 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.17.0 (ME patch 9)
+- 3.17.0 Settings → Preview sounds and messages: hear every sound and see every pop-up and gear tier now.
+- 3.16.0 Food tab simplified: no meal cards; Add food with Scan barcode, Add item and one search bar (Frequently used shows until you type); one Logged today list.
+- 3.15.5 Workout picker order: Push, Pull, Legs, Back, Forearms.
+- 3.15.4 Wall sconces either side of a centred "Today" title (option C); level card back to full width; both fires change colour together.
+
 ## 3.15.3 (ME patch 8)
 - 3.15.3 Fire stands moved beside the level card, redrawn, and the colour cycle now works on iPhone; home screen icon files renamed so phones pick up the crossed swords.
 - 3.15.2 Sync status and account moved from the top of Today into Settings → Account.

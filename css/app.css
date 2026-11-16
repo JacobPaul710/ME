@@ -299,10 +299,11 @@ html[data-theme="parchment"] textarea { background: #fbf5e6; }
 body.resting #app { padding-bottom: calc(env(safe-area-inset-bottom) + 156px); }
 body.resting .toast { bottom: calc(env(safe-area-inset-bottom) + 136px); }
 
-/* Today: fire stands either side of the level card */
-.level-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: end; gap: 6px; }
-.level-row .card.level { align-self: stretch; }
-.brazier { display: block; overflow: visible; }
+/* Today: wall sconces either side of the centred title */
+.hero { display: flex; align-items: flex-end; justify-content: space-between; margin: 0 -16px; }
+.hero-title { flex: 1; text-align: center; padding-bottom: 16px; }
+.hero-title .title { font-size: 32px; }
+.brazier { display: block; flex: none; overflow: visible; }
 .brazier .fire, .brazier .tongue { transform-box: view-box; transform-origin: 22px 56px; }
 .brazier .t1 { animation: lick 0.7s ease-in-out infinite alternate; }
 .brazier .t2 { animation: lick 0.55s ease-in-out infinite alternate-reverse; }

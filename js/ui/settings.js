@@ -9,6 +9,11 @@ import * as data from '../data.js';
 import { LEVEL_THEMES } from './levelThemes.js';
 import { ACTIVITY, GOALS, activityValue } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
+import { sfx } from '../core/sfx.js';
+import { cheer } from '../core/cheers.js';
+import { celebrate, levelUp, tierUnlocked } from '../celebrations.js';
+import { TIERS } from '../logic/gear.js';
+import { sheet } from './components.js';
 import { levelCardView } from './today.js';
 import { iso as todayIso } from '../logic/dates.js';
 
@@ -33,6 +38,21 @@ async function exportCSV(key) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Hear and see every sound and pop-up without waiting weeks. Nothing is saved.
+function previewSheet() {
+  const row = (label, fn) => button(label, fn, 'block');
+  sheet('Preview sounds and messages', h('div', { class: 'stack' },
+    h('h3', { class: 'list-head' }, 'Sounds'),
+    h('div', { class: 'grid2' }, row('Level-up', () => sfx.levelUp()), row('Gear tier', () => sfx.tier()),
+      row('Streak milestone', () => sfx.milestone()), row('Rest bell', () => sfx.restDone())),
+    row('Voice cheer', async () => { if (!(await cheer())) toast('No voice clips yet. Add them to audio/cheers.'); }),
+    h('h3', { class: 'list-head' }, 'Pop-ups'),
+    h('div', { class: 'grid2' }, row('Level 14', () => levelUp(14)), row('Level 20', () => levelUp(20)),
+      row('7-day streak', () => celebrate(7)), row('30-day streak', () => celebrate(30))),
+    h('h3', { class: 'list-head' }, 'Gear tiers'),
+    TIERS.map((t) => row(`${t.name} (day ${t.day})`, () => tierUnlocked(t)))));
 }
 
 // Pick the level card background. Saves as soon as you tap one.
@@ -100,6 +120,8 @@ export function renderSettings(root, ctx) {
           toast(e.target.checked ? 'Voice cheers on' : 'Voice cheers off');
         } }),
         h('span', null, 'Play a cheer when I finish a set'))),
+    card(h('h2', { class: 'card-title' }, 'Sounds and messages'),
+      button('Preview sounds and messages', previewSheet, 'block')),
     themePicker(s.levelTheme),
     h('p', { class: 'sub center version' }, `Version ${APP_VERSION}`),
     // Invisible: tap the space just under the version number to check for updates.

@@ -141,8 +141,9 @@ function gearCard(today) {
 export function renderToday(root, ctx) {
   const { today, go } = ctx;
   root.append(...[
-    header('Today', nice(today)),
-    (() => { const [l, r] = braziers(); startFlames(); return h('div', { class: 'level-row' }, l, levelCard(today), r); })(),
+    (() => { const [l, r] = braziers(); startFlames(); return h('header', { class: 'hero' }, l,
+      h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
+    levelCard(today),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),
     weighCard(today, go),
