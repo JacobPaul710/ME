@@ -117,6 +117,12 @@ export function addSet(exId, date, dayType, values) {
 }
 export const updateSet = (id, patch) => store.update(id, patch);
 export const removeSet = (id) => store.remove(id);
+// Everything logged for a day's workout and check-in (food and weigh-in are kept).
+export const daySets = (date) => allSets().filter((s) => s.date === date);
+export async function clearDay(date) {
+  for (const s of daySets(date)) await store.remove(s.id);
+  if (checkin(date)) await clearCheckin(date);
+}
 
 // Per-set goals from your sessions before `today` (and your starting numbers, if any).
 export function exerciseStatus(ex, today) {

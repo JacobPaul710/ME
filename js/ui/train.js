@@ -31,22 +31,65 @@ function lastWorkout(ex, st) {
 }
 const dayDate = (d) => parse(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
-// Under each set: how many more workouts at this goal before the goal goes up a rep.
-function setMeta(ex, st, i) {
+// Under each set: how many more workouts at this goal before the goal goes up a rep
+// (counting today once the set is done at or above its goal).
+function setMeta(ex, st, i, row) {
   const s = st.sets[i];
-  if (s && s.goal >= st.top && s.hits >= st.needed) return 'Top of the range: ready to go up in weight';
-  return `${s ? s.hits : 0} of ${st.needed} workouts until rep increase`;
+  const goal = s ? s.goal : st.start;
+  let hits = s ? s.hits : 0;
+  const reps = row && row.done ? (row.repsR != null || row.repsL != null ? Math.min(+row.repsR || 0, +row.repsL || 0) : +row.reps || 0) : null;
+  const hitToday = reps != null && reps >= goal;
+  if (hitToday) hits = Math.min(st.needed, hits + 1);
+  if (goal >= st.top && hits >= st.needed) return `${hitToday ? '✓ Goal hit · ' : ''}Top of the range: ready to go up in weight`;
+  if (hitToday && hits >= st.needed) return `✓ Goal hit · goal goes up to ${goal + 1} next workout`;
+  return `${hitToday ? '✓ Goal hit · ' : ''}${hits} of ${st.needed} workouts until rep increase`;
 }
 
-// Notes box under the exercise name: type straight in, it saves by itself.
-function notesBox(ex) {
-  const t = h('textarea', { class: 'ex-notes-box', rows: '2', placeholder: 'Setup, form cues, machine settings…', 'aria-label': `Notes for ${ex.name}` });
-  t.value = ex.notes || '';
-  let timer;
-  const save = () => { clearTimeout(timer); if (t.value.trim() !== (ex.notes || '')) data.updateExercise(ex, { notes: t.value.trim() }); };
-  t.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(save, 600); });
-  t.addEventListener('blur', save);
-  return h('label', { class: 'ex-notes-field' }, h('span', { class: 'sub' }, 'Notes'), t);
+// Notes: separate cards under the exercise name. "+ Add" starts a new one; tap a card to edit it.
+const noteItems = (ex) => ex.noteItems || (ex.notes ? [{ id: 'n0', text: ex.notes }] : []);
+const saveNotes = (ex, items) => data.updateExercise(ex, { noteItems: items, notes: items.map((n) => n.text).join('\n') });
+
+function noteEditor(ex, item, items) {
+  const t = h('textarea', { class: 'ex-notes-box', rows: '2', 'aria-label': item ? 'Edit note' : 'New note', placeholder: 'Type a note' });
+  t.value = item ? item.text : '';
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true;
+    const text = t.value.trim();
+    if (!item && text) saveNotes(ex, [...items, { id: 'n' + Date.now().toString(36), text }]);
+    else if (item && text && text !== item.text) saveNotes(ex, items.map((n) => (n.id === item.id ? { ...n, text } : n)));
+    else if (item && !text) saveNotes(ex, items.filter((n) => n.id !== item.id));
+    else render();
+  };
+  let render = () => {};
+  t.addEventListener('blur', finish);
+  t.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); t.blur(); } });
+  return { el: t, onCancel: (fn) => { render = fn; } };
+}
+
+function notesBlock(ex) {
+  const list = h('div', { class: 'note-list' });
+  const draw = (editingId = null, adding = false) => {
+    const items = noteItems(ex);
+    const kids = items.map((n) => {
+      if (n.id === editingId) {
+        const ed = noteEditor(ex, n, items); ed.onCancel(() => draw());
+        setTimeout(() => ed.el.focus(), 0);
+        return ed.el;
+      }
+      return h('div', { class: 'note-card' },
+        h('button', { type: 'button', class: 'note-text', 'aria-label': `Edit note: ${n.text}`, onClick: () => draw(n.id) }, n.text),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove note: ${n.text}`, onClick: () => saveNotes(ex, items.filter((x) => x.id !== n.id)) }, '×'));
+    });
+    if (adding) { const ed = noteEditor(ex, null, items); ed.onCancel(() => draw()); kids.push(ed.el); setTimeout(() => ed.el.focus(), 0); }
+    if (!kids.length) kids.push(h('p', { class: 'sub', style: 'margin:0' }, 'No notes yet.'));
+    list.replaceChildren(...kids);
+  };
+  draw();
+  return h('div', { class: 'ex-notes-field' },
+    h('div', { class: 'row' }, h('span', { class: 'sub grow' }, 'Notes'),
+      h('button', { type: 'button', class: 'btn ghost note-add', 'aria-label': `Add a note to ${ex.name}`, onClick: () => draw(null, true) }, '+ Add')),
+    list);
 }
 
 function exerciseCard(ex, dayType, today) {
@@ -121,6 +164,8 @@ function exerciseCard(ex, dayType, today) {
       const ok = ready(v);
       if (ok !== true) { toast(ok); return; }
       const before = data.skillInfo(iso());
+      const goal = st.sets[i] ? st.sets[i].goal : st.start;
+      const hitGoal = !cardio && v.reps != null && v.reps >= goal;
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
@@ -129,13 +174,16 @@ function exerciseCard(ex, dayType, today) {
       const after = data.skillInfo(iso());
       const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
       const ups = gains.filter((g) => g.up).map((g) => `${g.s.name} level ${g.s.level}!`);
-      if (gains.length) toast([...gains.map((g) => `+${fmt(g.d, 0)} ${g.s.name} XP`), ...ups].join(' · '));
+      const hits = st.sets[i] ? st.sets[i].hits : 0;
+      const goalMsg = hitGoal ? (hits + 1 >= st.needed && goal < st.top ? `Goal hit! ${hits + 1} of ${st.needed}: goal goes up to ${goal + 1} next time.` : `Goal hit! ${Math.min(hits + 1, st.needed)} of ${st.needed} workouts.`) : null;
+      const xp = [...gains.map((g) => `+${fmt(g.d, 0)} ${g.s.name} XP`), ...ups].join(' · ');
+      if (goalMsg || xp) toast([goalMsg, xp].filter(Boolean).join(' '));
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: 'set-wrap' },
       h('div', { class: `set-row${sides ? ' sides' : cardio ? '' : ' g3'}${row.done ? ' done' : ''}` },
         light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
-      cardio ? null : h('div', { class: 'set-meta' }, setMeta(ex, st, i)));
+      cardio ? null : h('div', { class: `set-meta${row.done && /Goal hit/.test(setMeta(ex, st, i, row)) ? ' hit' : ''}` }, setMeta(ex, st, i, row)));
   };
 
   const addSet = async () => {
@@ -151,7 +199,7 @@ function exerciseCard(ex, dayType, today) {
     h('div', { class: 'row' },
       h('h2', { class: 'card-title grow' }, ex.name),
       h('button', { type: 'button', class: 'btn ghost', 'aria-label': `Edit ${ex.name}`, onClick: () => exerciseMenu(ex, dayType) }, 'Edit')),
-    notesBox(ex),
+    notesBlock(ex),
     lastWorkout(ex, st),
     !cardio && st.ready ? h('div', { class: 'banner' }, `Every set hit ${st.top} reps ${st.needed} sessions in a row. Go up in weight; goals reset to ${st.start}.`) : null,
     h('div', { class: `set-row head${sides ? ' sides' : cardio ? '' : ' g3'}`, 'aria-hidden': 'true' }, h('span'), heads.map((t) => h('span', null, t)), h('span')),
@@ -172,8 +220,6 @@ function quake() {
 
 function exerciseMenu(ex, dayType) {
   const name = h('input', { type: 'text', value: ex.name });
-  const notes = h('textarea', { rows: '3', placeholder: 'Setup, form cues, machine settings…' });
-  notes.value = ex.notes || '';
   const group = h('input', { type: 'text', value: ex.group || '', placeholder: 'e.g. Chest', list: 'groups' });
   const groups = h('datalist', { id: 'groups' }, ['Chest', 'Shoulders', 'Triceps', 'Biceps', 'Back', 'Legs', 'Forearms', 'Core'].map((g) => h('option', { value: g })));
   const rs = numberInput(ex.repStart ?? 10, { inputmode: 'numeric', step: '1', min: '1' });
@@ -183,7 +229,7 @@ function exerciseMenu(ex, dayType) {
   const std = h('select', null, h('option', { value: '' }, 'None'),
     Object.entries(LIFTS).map(([k, l]) => h('option', { value: k, selected: k === current }, l.label)));
   const strength = ex.type !== 'cardio';
-  const body = h('div', { class: 'stack' }, field('Name', name), field('Notes', notes), field('Muscle group', group), groups,
+  const body = h('div', { class: 'stack' }, field('Name', name), field('Muscle group', group), groups,
     strength ? h('div', { class: 'grid2' }, field('Rep goal starts at', rs), field('Rep goal tops out at', rt)) : null,
     strength ? h('label', { class: 'check-row' }, sides, h('span', null, 'Count left and right reps separately')) : null,
     strength ? field('Strength level based on', std) : null);
@@ -191,7 +237,7 @@ function exerciseMenu(ex, dayType) {
     button('Save', async () => {
       if (!name.value.trim()) { toast('Enter a name'); return; }
       const start = Math.max(1, Math.round(+rs.value || 10));
-      const patch = { name: name.value.trim(), notes: notes.value.trim(), group: group.value.trim() || null };
+      const patch = { name: name.value.trim(), group: group.value.trim() || null };
       if (strength) Object.assign(patch, { repStart: start, repTop: Math.max(start, Math.round(+rt.value || start)), sides: sides.checked, standard: std.value || 'none' });
       await data.updateExercise(ex, patch);
       s.close();

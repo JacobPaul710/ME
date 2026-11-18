@@ -1,6 +1,6 @@
 import { h, fmt } from './dom.js';
 import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light } from './components.js';
-import { nice } from '../logic/dates.js';
+import { nice, iso } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
 import { search, norm } from '../logic/foods.js';
 import { usdaFoods, searchOnline, lookupBarcode } from '../core/foodapi.js';
@@ -19,7 +19,7 @@ const clearSearch = () => {
 const mealName = (id) => (data.MEALS.find((m) => m[0] === id) || [, 'Snacks'])[1];
 const mealSelect = (value) => h('select', null, data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label)));
 const macroText = (m) => `${fmt(m.cal)} cal · ${fmt(m.p, 1)} g protein · ${fmt(m.c, 1)} g carbs · ${fmt(m.f, 1)} g fat`;
-const sourceLabel = { usda: 'Basic foods', off: 'Online', custom: 'My item' };
+const sourceLabel = { usda: 'Basic foods', 'usda-online': 'USDA', off: 'Open Food Facts', custom: 'My item' };
 
 export function foodSheet(food, today) {
   const saved = (food.id && food.source && data.savedFoods().find((f) => f.id === food.id)) || data.findSaved(food);
@@ -269,25 +269,38 @@ function supplementsCard(date) {
   if (!list.length) return null;
   const taken = new Set(data.suppTaken(date));
   const n = list.filter((x) => taken.has(x.id)).length;
+  // Check one off and show the Herblore XP it earned (or lost, when unchecked).
+  const tick = async (x) => {
+    const herb = () => data.skillInfo(iso()).list.find((sk) => sk.id === 'herblore');
+    const before = herb();
+    await data.toggleSupp(date, x.id);
+    const after = herb();
+    const d = after.xp - before.xp;
+    if (d) toast(`${d > 0 ? '+' : '−'}${fmt(Math.abs(d), 0)} Herblore XP${after.level > before.level ? ` · Herblore level ${after.level}!` : ''}`);
+  };
   return h('section', { class: 'card', 'aria-label': 'Supplements' },
     h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Supplements'), h('span', { class: 'sub' }, `${n} of ${list.length}`)),
     h('div', { class: 'list' }, list.map((x) => h('div', { class: 'item' },
-      light(taken.has(x.id), () => data.toggleSupp(date, x.id), `${x.name} ${taken.has(x.id) ? 'taken' : 'not taken'}`),
-      h('button', { type: 'button', class: 'item-main', onClick: () => data.toggleSupp(date, x.id) },
+      light(taken.has(x.id), () => tick(x), `${x.name} ${taken.has(x.id) ? 'taken' : 'not taken'}`),
+      h('button', { type: 'button', class: 'item-main', onClick: () => tick(x) },
         h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, x.dose || ''))))));
 }
 
+export const setFoodMeal = (meal) => { state.meal = meal; };
+
+// The Food tab is for today, or for a past day opened from History (#food/2026-11-16).
 export function renderFood(root, ctx) {
-  const { today } = ctx;
+  const past = /^\d{4}-\d{2}-\d{2}$/.test(ctx.sub || '') && ctx.sub < ctx.today ? ctx.sub : null;
+  const today = past || ctx.today;
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
     h('h2', { class: 'card-title' }, 'Add food'),
     h('div', { class: 'field' }, h('span', null, 'Adding to'), segmented(data.MEALS, state.meal, (v) => { state.meal = v; ctx.rerender(); })),
     h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today)), button('Frequently used', () => frequentSheet(today))),
     searchPanel(today));
   root.append(...[
-    header('Food', nice(today)),
+    past ? header(`Food · ${nice(today)}`, 'Editing a past day', button('Back to today', () => ctx.go('#food'), 'ghost')) : header('Food', nice(today)),
     summaryCard(today),
     addSection,
-    loggedToday(today),
+    past ? mealBreakdown(today, { editable: true, onAdd: (meal) => { state.meal = meal; ctx.rerender(); document.querySelector('#add-food input[type="search"]')?.focus(); } }) : loggedToday(today),
     supplementsCard(today)].filter(Boolean));
 }

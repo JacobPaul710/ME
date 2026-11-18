@@ -51,6 +51,12 @@ export function celebrate(n) {
   popup({ big: n >= 30, label: `${n}-day streak`, num: n, title: `${milestoneName(n)} streak`, text: MESSAGES[n] || `${n} days in a row.` });
 }
 
+export function evolved(name, form, level) {
+  stopAudio();
+  sfx.levelUp();
+  popup({ big: true, kind: 'evolve', label: `${name} evolved`, num: level, title: `Your ${name} evolved!`, text: `Combat level ${level} unlocked its ${form} form. Go see it on the Character tab.` });
+}
+
 export function levelUp(level) {
   stopAudio();
   sfx.levelUp();

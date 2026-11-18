@@ -6,7 +6,7 @@ import { nice } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
 import { weightSummary } from '../logic/stats.js';
 import * as data from '../data.js';
-import { mealBreakdown } from './food.js';
+import { mealBreakdown, setFoodMeal } from './food.js';
 
 const state = { workoutView: 'date' };
 const signed = (n, d = 1, unit = '') => (n == null ? '—' : `${n > 0 ? '+' : ''}${fmt(n, d)}${unit}`);
@@ -15,11 +15,12 @@ function setText(s, cardio) {
   return cardio ? `${s.minutes ?? '—'} min${s.miles ? ` · ${s.miles} mi` : ''}` : `${s.weight ?? 0} lb × ${s.reps}`;
 }
 
-function byDate() {
+// Tap a workout to open it on that date and change or remove sets.
+function byDate(ctx) {
   const days = data.workoutDays();
   if (!days.length) return empty('No workouts yet.');
-  return h('div', { class: 'stack' }, days.map((d) => card(
-    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, nice(d.date)), h('span', { class: 'sub' }, d.dayTypes.join(', '))),
+  return h('div', { class: 'stack' }, days.map((d) => h('button', { type: 'button', class: 'card hist-day', 'aria-label': `Edit workout on ${nice(d.date)}`, onClick: () => ctx.go(d.date === ctx.today ? '#train' : `#train/${d.date}`) },
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, nice(d.date)), h('span', { class: 'sub' }, d.dayTypes.join(', ')), h('span', { class: 'edit-hint' }, 'Edit')),
     d.items.map((it) => h('div', { class: 'hist-ex' },
       h('div', { class: 'item-name' }, it.exercise.name),
       h('div', { class: 'sub' }, it.sets.map((s) => setText(s, it.exercise.type === 'cardio')).join('  ·  ')))))));
@@ -71,17 +72,20 @@ function byExercise() {
     })));
 }
 
-function foodHistory() {
+function foodHistory(ctx) {
   const days = data.foodDays();
   if (!days.length) return empty('No food logged yet.');
   const tg = data.settings().targets;
-  return h('div', { class: 'list' }, days.map((d) => h('button', { type: 'button', class: 'item item-main', onClick: () => foodDay(d.date) },
+  return h('div', { class: 'list' }, days.map((d) => h('button', { type: 'button', class: 'item item-main', onClick: () => foodDay(d.date, ctx) },
     h('span', { class: 'item-name' }, nice(d.date)),
     h('span', { class: 'sub' }, MACROS.map((m) => `${m.label} ${fmt(d.totals[m.key], m.key === 'cal' ? 0 : 1)}${tg[m.key] ? `/${fmt(tg[m.key])}` : ''}`).join(' · ')))));
 }
 
-function foodDay(date) {
-  sheet(nice(date), mealBreakdown(date));
+// A past day's food, editable: tap an item to change or remove it; "+ Add" opens that day in the Food tab.
+function foodDay(date, ctx) {
+  const open = () => { s.close(); ctx.go(date === ctx.today ? '#food' : `#food/${date}`); };
+  const s = sheet(nice(date), mealBreakdown(date, { editable: true, onAdd: (meal) => { setFoodMeal(meal); open(); } }),
+    [button('Open this day in Food', open, 'block')]);
 }
 
 function weightHistory(today) {
@@ -112,7 +116,7 @@ export function renderHistory(root, ctx) {
       h('div', { class: 'grow' }, h('div', { class: 'sub' }, 'Best streak'), h('div', { class: 'best-num' }, `${best} day${best === 1 ? '' : 's'}`)),
       h('div', { class: 'sub' }, `Now: ${current}`))));
     root.append(segmented([['date', 'By date'], ['exercise', 'By exercise']], state.workoutView, (v) => { state.workoutView = v; ctx.rerender(); }),
-      state.workoutView === 'date' ? byDate() : byExercise());
-  } else if (tab === 'food') root.append(foodHistory());
+      state.workoutView === 'date' ? byDate(ctx) : byExercise());
+  } else if (tab === 'food') root.append(foodHistory(ctx));
   else root.append(weightHistory(ctx.today));
 }

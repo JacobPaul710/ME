@@ -3,6 +3,18 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.42.0 (ME patch 14)
+- 3.42.0 Monster mode (default) or Knight, picked in Settings. 9 monsters, each with 6 forms that unlock at combat 3, 25, 50, 80, 110 and 126, with an evolution pop-up. Idles every 2–3 seconds (monster: breath, stomp, roar, snap, tail swish, swell; knight: spin sword, swing, flex, polish shield, stab, steam). The knight now carries a shield.
+- 3.41.0 With a mouse, rest the cursor on the left edge of the window to open Settings.
+- 3.40.0 Checking off a supplement shows the Herblore XP it earned.
+- 3.39.1 Every food lists the whole item first ("burger (330 g)"), so the amount is how many you ate.
+- 3.39.0 Online food search pulls from USDA and Open Food Facts together; entries whose numbers don't add up or that are filed under the wrong brand are hidden; duplicates keep the most consistent copy. Results say where they came from.
+- 3.38.0 "Goal hit!" message when a set reaches its rep goal, and a ✓ under the set.
+- 3.37.0 Notes are separate cards: + Add, tap to edit, × to remove.
+- 3.36.0 Tap a workout in History to open it and edit it.
+- 3.35.0 Tap a day in History → Food to change or remove items; "Open this day in Food" to add more.
+- 3.34.1 "Clear this day" shows on any past day with a check-in or logged sets.
+
 ## 3.34.0 (ME patch 13)
 - 3.34.0 Tap the combat level card on Today and it flips over to show what's done and what's still needed.
 - 3.33.0 Frequently used has its own button next to Scan barcode and Add item.

@@ -356,18 +356,18 @@ body.resting .toast { bottom: calc(env(safe-area-inset-bottom) + 136px); }
 .sprite g { transform-box: fill-box; }
 .p-all { transform-origin: 50% 100%; }
 .p-head { transform-origin: 50% 100%; }
-.p-armL { transform-origin: 50% 0; }
+.p-left { transform-origin: 4px 0; transform-box: fill-box; }
 .p-right { transform-origin: 3px 0; transform-box: fill-box; }
 .p-legL, .p-legR { transform-origin: 50% 0; }
 .mv-jump .p-all { animation: mv-jump 0.9s ease-out; }
 @keyframes mv-jump { 0%,100% { transform: none; } 20% { transform: scaleY(0.88); } 50% { transform: translateY(-9px); } 80% { transform: scaleY(0.95); } }
 .mv-spin .p-all { animation: mv-spin 0.9s ease-in-out; transform-origin: 50% 50%; }
 @keyframes mv-spin { to { transform: rotateY(360deg); } }
-.mv-flex .p-armL { animation: mv-flexL 1.1s ease-in-out; }
+.mv-flex .p-left { animation: mv-flexL 1.1s ease-in-out; }
 .mv-flex .p-right { animation: mv-flexR 1.1s ease-in-out; }
 @keyframes mv-flexL { 0%,100% { transform: none; } 25%,75% { transform: rotate(140deg); } }
 @keyframes mv-flexR { 0%,100% { transform: none; } 25%,75% { transform: rotate(-140deg); } }
-.mv-wave .p-armL { animation: mv-wave 1.2s ease-in-out; }
+.mv-wave .p-left { animation: mv-wave 1.2s ease-in-out; }
 @keyframes mv-wave { 0%,100% { transform: none; } 20% { transform: rotate(160deg); } 40% { transform: rotate(120deg); } 60% { transform: rotate(160deg); } 80% { transform: rotate(120deg); } }
 .mv-swing .p-right { animation: mv-swing 0.8s ease-in; }
 @keyframes mv-swing { 0%,100% { transform: none; } 35% { transform: rotate(-170deg); } 60% { transform: rotate(40deg); } }
@@ -418,3 +418,43 @@ button.card.level { display: block; width: 100%; text-align: left; font: inherit
 .level-back .back-line { font-size: 15px; font-weight: 600; }
 .level-back .back-line.done { color: var(--good, #3f8a3a); }
 .level-back .back-hint { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+.set-meta.hit { color: var(--good, #3f8a3a); font-weight: 700; }
+.note-list { display: flex; flex-direction: column; gap: 6px; }
+.note-card { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.note-text { flex: 1; min-height: 44px; text-align: left; padding: 8px 10px; background: none; border: 0; color: var(--text); font: inherit; font-size: 15px; white-space: pre-wrap; cursor: pointer; }
+.note-add { min-height: 36px; padding: 0 10px; }
+.hist-day { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.edit-hint { color: var(--accent); font-weight: 700; font-size: 14px; margin-left: 8px; }
+
+/* Idles (every 2–3 s) */
+.char-form { font-weight: 700; color: var(--accent); }
+.char-figure.monster { height: auto; min-height: 140px; padding: 24px 0 6px; }
+.id-spin .p-right { animation: id-spin 1s ease-in-out; }
+@keyframes id-spin { to { transform: rotate(-360deg); } }
+.id-swing .p-right { animation: mv-swing 0.8s ease-in; }
+.id-flex .p-left { animation: mv-flexL 1.1s ease-in-out; }
+.id-flex .p-right { animation: mv-flexR 1.1s ease-in-out; }
+.id-polish .p-right { animation: id-polish 1.2s ease-in-out; }
+@keyframes id-polish { 0%,100% { transform: none; } 15%,45%,75% { transform: rotate(55deg); } 30%,60%,90% { transform: rotate(35deg); } }
+.id-stab .p-right { animation: id-stab 0.9s ease-in-out; }
+@keyframes id-stab { 0%,100% { transform: none; } 30% { transform: rotate(-90deg); } 50% { transform: rotate(-90deg) translateY(-5px); } 70% { transform: rotate(-90deg); } }
+.id-steam .p-head { animation: id-steam 1s ease-in-out; transform-origin: 50% 100%; }
+@keyframes id-steam { 0%,100% { transform: none; } 30%,60% { transform: translateY(-0.5px) scale(1.04); } }
+.monster-sprite .p-all { transform-origin: 50% 100%; transform-box: fill-box; }
+.id-fire .p-all { animation: id-fire 1.2s ease-in-out; }
+@keyframes id-fire { 0%,100% { transform: none; } 20% { transform: rotate(-6deg) scale(0.97); } 40%,80% { transform: rotate(4deg) translateX(1px) scale(1.03); } }
+.id-stomp .p-all { animation: id-stomp 1s ease-in; }
+@keyframes id-stomp { 0%,100% { transform: none; } 30% { transform: translateY(-3px); } 45% { transform: translateY(0) scaleY(0.9); } 55% { transform: translateX(-1px); } 65% { transform: translateX(1px); } }
+.id-roar .p-all { animation: id-roar 1.2s ease-out; }
+@keyframes id-roar { 0%,100% { transform: none; } 25% { transform: rotate(-10deg) scale(1.03); } 35%,70% { transform: rotate(-12deg) scale(1.08); } 50% { transform: rotate(-12deg) scale(1.08) translateX(0.5px); } }
+.id-snap .p-all { animation: id-snap 0.8s ease-in-out; }
+@keyframes id-snap { 0%,100% { transform: none; } 20%,60% { transform: scaleX(1.1) scaleY(0.95); } 40%,80% { transform: scaleX(0.93); } }
+.id-swish .p-all { animation: id-swish 1.2s ease-in-out; }
+@keyframes id-swish { 0%,100% { transform: none; } 20%,60% { transform: skewX(-8deg); } 40%,80% { transform: skewX(8deg); } }
+.id-swell .p-all { animation: id-swell 1.4s ease-in-out; }
+@keyframes id-swell { 0%,100% { transform: none; filter: none; } 30%,70% { transform: scale(1.16, 1.12); filter: brightness(1.15) drop-shadow(0 0 2px var(--glow)); } }
+.sprite.form-5 { filter: drop-shadow(0 0 6px #f2c037); animation: ascend 2.4s ease-in-out infinite; }
+@keyframes ascend { 50% { filter: drop-shadow(0 0 14px #f2c037); } }
+.fx.puff { position: absolute; bottom: auto; font-size: 16px; }
+.fx.breath { font-size: 14px; }
+.fx.steam { font-size: 14px; }

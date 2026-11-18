@@ -4,6 +4,7 @@ import { h, svg, fmt } from './dom.js';
 import { card, header } from './components.js';
 import * as data from '../data.js';
 import { combatSheet } from './today.js';
+import { MONSTERS, FORMS, formIndex, monsterById, monsterSvg } from './monster.js';
 
 // ---------- the sprite ----------
 // Armour colours per gear tier: [main, shade, light]. No tier yet = cloth.
@@ -19,6 +20,7 @@ const PARTS = {
   legR: [10, 17, ['kppk.', 'kppk.', 'kppk.', 'kppk.', 'kppk.', 'kppk.', 'kppk.', 'kppk.', 'kbbbk', 'kkkkk']],
   body: [6, 8, ['kkmmmmkk', 'kmllmmdk', 'kmlmmmdk', 'kmlmmmdk', 'kBBgBBBk', 'kmlmmmdk', 'kmmmmmdk', 'kmmmmddk', 'kkkkkkkk']],
   armL: [3, 9, ['kak', 'kak', 'kak', 'kak', 'kak', 'kak', 'ksk', 'kSk', 'kkk']],
+  shield: [0, 12, ['.kkkk.', 'kmmmdk', 'kmgmdk', 'kmmmdk', '.kmdk.', '..kk..']],
   sword: [14, 0, ['..k..', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', '.kwk.', 'kgggk', '..B..', '..B..', '..g..']],
   armR: [14, 9, ['kak', 'kak', 'kak', 'kak', 'kak', 'kak', 'ksk', 'kSk', 'kkk']],
   head: [6, 0, ['..kkkk..', '.khhhhk.', 'khhhhhhk', 'khssssSk', 'ksessesk', 'kssssssk', '.kssSSk.', '..kkkk..']],
@@ -44,7 +46,7 @@ function sprite(tierId) {
   const pal = palette(tierId);
   return svg(`<svg class="sprite" viewBox="0 0 20 28" width="120" height="168" shape-rendering="crispEdges" aria-hidden="true">
     <ellipse class="p-shadow" cx="10" cy="27.3" rx="6" ry="0.8" fill="rgba(0,0,0,0.25)"/>
-    <g class="p-all">${part('legL', pal)}${part('legR', pal)}${part('body', pal)}${part('armL', pal)}<g class="p-right">${part('sword', pal)}${part('armR', pal)}</g>${part('head', pal)}</g>
+    <g class="p-all">${part('legL', pal)}${part('legR', pal)}${part('body', pal)}<g class="p-left">${part('armL', pal)}${part('shield', pal)}</g><g class="p-right">${part('sword', pal)}${part('armR', pal)}</g>${part('head', pal)}</g>
   </svg>`);
 }
 
@@ -53,6 +55,54 @@ export const MOVES = ['jump', 'spin', 'flex', 'wave', 'swing', 'squat', 'headsha
 export const EFFECTS = ['sparkles', 'hearts', 'stars', 'notes', 'lightning', 'coins', 'smoke', 'confetti', 'fire', 'xp'];
 const GLYPHS = { sparkles: ['✦', '✧'], hearts: ['♥'], stars: ['★'], notes: ['♪', '♫'], lightning: ['ϟ'], coins: ['●'], smoke: ['☁'], confetti: ['▬', '■', '▲'], fire: ['▲'], xp: ['+XP'] };
 const COLORS = { sparkles: ['#fff6a0', '#ffffff'], hearts: ['#e3364d'], stars: ['#ffd23f'], notes: ['#3b2a1a'], lightning: ['#ffe14d', '#7fd3ff'], coins: ['#f2c037'], smoke: ['#9a9a9a'], confetti: ['#e3364d', '#3aa0e3', '#3fbf5a', '#ffd23f'], fire: ['#ff7a1a', '#ffbf1a', '#e33a1a'], xp: ['#ffff00'] };
+
+// Puffs of particles from a point on the figure (fire breath, steam, sparks…), as % of the box.
+function puff(box, { x, y, dx, dy, glyphs, colors, n = 8, cls = '' }) {
+  for (let i = 0; i < n; i++) {
+    box.append(h('span', { class: `fx puff ${cls}`, 'aria-hidden': 'true', style: `left:${x}%;top:${y}%;--x:${Math.round(dx + (Math.random() - 0.5) * 30)}px;--y:${Math.round(dy + (Math.random() - 0.5) * 24)}px;--d:${(i * 0.05).toFixed(2)}s;--r:${Math.round(Math.random() * 90 - 45)}deg;color:${colors[i % colors.length]}` }, glyphs[i % glyphs.length]));
+  }
+}
+
+// Idles: one plays every 2–3 seconds.
+export const KNIGHT_IDLES = ['spin', 'swing', 'flex', 'polish', 'stab', 'steam'];
+export const MONSTER_IDLES = ['fire', 'stomp', 'roar', 'snap', 'swish', 'swell'];
+const BREATH = { emberwyrm: ['fire'], sandqueen: ['sand'], mosslump: ['spores'], gloomwing: ['shriek'], tidefang: ['bubbles'], voidling: ['void'], antlerghast: ['mist'], wraithling: ['mist'], leechmaw: ['spit'] };
+const BREATH_FX = {
+  fire: { glyphs: ['▲', '●'], colors: ['#ff7a1a', '#ffbf1a', '#e33a1a'] }, sand: { glyphs: ['●', '■'], colors: ['#e0c27a', '#c99a3a'] },
+  spores: { glyphs: ['●'], colors: ['#b7f5c4', '#7fc25a'] }, shriek: { glyphs: [')', '))'], colors: ['#c77dff', '#ff5e9a'] },
+  bubbles: { glyphs: ['○', '◦'], colors: ['#9fd0ef', '#ffffff'] }, void: { glyphs: ['✦', '●'], colors: ['#a560d8', '#e3364d'] },
+  mist: { glyphs: ['☁'], colors: ['#cfd8e3', '#7fe9ff'] }, spit: { glyphs: ['●'], colors: ['#a6ff3b', '#e3364d'] },
+};
+
+export function playIdle(box, kind, name, monsterId) {
+  const fig = box.querySelector('.sprite');
+  if (!fig) return;
+  fig.classList.remove(...[...fig.classList].filter((c) => c.startsWith('id-') || c.startsWith('mv-')));
+  void fig.getBoundingClientRect();
+  fig.classList.add(`id-${name}`);
+  box.dataset.idle = name;
+  if (kind === 'knight' && name === 'steam') {
+    puff(box, { x: 47, y: 22, dx: -40, dy: -30, glyphs: ['☁'], colors: ['#ffffff', '#dddddd'], n: 4, cls: 'steam' });
+    puff(box, { x: 53, y: 22, dx: 40, dy: -30, glyphs: ['☁'], colors: ['#ffffff', '#dddddd'], n: 4, cls: 'steam' });
+  }
+  if (kind === 'knight' && name === 'polish') puff(box, { x: 32, y: 55, dx: 0, dy: -20, glyphs: ['✦'], colors: ['#ffffff', '#fff6a0'], n: 3 });
+  if (kind === 'monster' && name === 'fire') {
+    const f = BREATH_FX[(BREATH[monsterId] || ['fire'])[0]];
+    puff(box, { x: 58, y: 55, dx: 90, dy: -10, ...f, n: 10, cls: 'breath' });
+  }
+  if (kind === 'monster' && name === 'roar') puff(box, { x: 55, y: 35, dx: 60, dy: -50, glyphs: ['!'], colors: ['#e3364d'], n: 2 });
+  setTimeout(() => { fig.classList.remove(`id-${name}`); box.querySelectorAll('.puff').forEach((n) => n.remove()); }, 1500);
+}
+
+function startIdles(box, kind, monsterId) {
+  const list = kind === 'knight' ? KNIGHT_IDLES : MONSTER_IDLES;
+  const tick = () => {
+    if (!box.isConnected) return; // left the screen
+    if (!box.dataset.busy) playIdle(box, kind, list[Math.floor(Math.random() * list.length)], monsterId);
+    setTimeout(tick, 2000 + Math.random() * 1000);
+  };
+  setTimeout(tick, 1200);
+}
 
 function animate(box) {
   const move = MOVES[Math.floor(Math.random() * MOVES.length)];
@@ -110,13 +160,27 @@ export function renderCharacter(root, ctx) {
   const streak = data.streakInfo(today);
   const skills = data.skillInfo(today);
   const tier = gear.current;
-  const box = h('button', { type: 'button', class: 'char-figure', 'aria-label': 'Your character. Tap for an animation' }, sprite(tier?.id || 'none'));
-  box.addEventListener('click', () => animate(box));
+  const st = data.settings();
+  const kind = st.avatar === 'knight' ? 'knight' : 'monster';
+  const mon = monsterById(st.monster);
+  const fi = formIndex(skills.combat);
+  const next = FORMS[fi + 1];
+  const box = h('button', { type: 'button', class: `char-figure ${kind}`, 'aria-label': kind === 'knight' ? 'Your character. Tap for an animation' : `Your ${mon.name}. Tap for an animation` },
+    kind === 'knight' ? sprite(tier?.id || 'none') : monsterSvg(mon, fi));
+  box.addEventListener('click', () => {
+    box.dataset.busy = '1'; setTimeout(() => delete box.dataset.busy, 1700);
+    if (kind === 'knight') animate(box);
+    else { const name = MONSTER_IDLES[Math.floor(Math.random() * MONSTER_IDLES.length)]; playIdle(box, 'monster', name, mon.id); box.dataset.anim = name; }
+  });
+  startIdles(box, kind, mon.id);
   root.append(
     header('Character'),
     card(h('div', { class: 'char-hero' }, box,
       h('button', { type: 'button', class: 'char-name', onClick: () => combatSheet(today) }, `Combat level ${skills.combat}`),
-      h('div', { class: 'sub' }, `${tier ? `${tier.name} gear` : 'No gear tier yet'} · ${streak.current} day streak`))),
+      kind === 'monster' ? h('div', { class: 'char-form' }, `${mon.name} · ${FORMS[fi].name} form`) : null,
+      h('div', { class: 'sub' }, kind === 'monster'
+        ? (next ? `Evolves at combat level ${next.level} · ${streak.current} day streak` : `Final form · ${streak.current} day streak`)
+        : `${tier ? `${tier.name} gear` : 'No gear tier yet'} · ${streak.current} day streak`))),
     h('section', { class: 'card skills-panel', 'aria-label': 'Skills' },
       h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Skills'), h('span', { class: 'skills-total' }, 'Total ', h('span', { class: 'pixel' }, String(skills.total)))),
       h('div', { class: 'skills' }, skills.list.map(skillTile)),

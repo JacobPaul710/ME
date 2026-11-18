@@ -1,5 +1,5 @@
 import { h, fmt, svg } from './dom.js';
-import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot } from './components.js';
+import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot, confirmSheet } from './components.js';
 import { streakWidget } from './streakWidget.js';
 import { nice, iso, parse } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
@@ -34,7 +34,10 @@ export function editDaySheet(date, go) {
     h('p', { class: 'sub', style: 'margin:0' }, 'A workout counts once you log at least one set as done.'),
     button('Rest', async () => { await data.setCheckin(date, 'rest'); s.close(); }, 'block'),
     button('Off', async () => { await data.setCheckin(date, 'off'); s.close(); }, 'block'),
-    data.checkin(date) ? button('Clear check-in', async () => { await data.clearCheckin(date); s.close(); }, 'danger block') : null));
+    data.checkin(date) || data.daySets(date).length ? button('Clear this day', () => {
+      s.close();
+      confirmSheet(`Clear ${nice(date)}?`, 'Removes the check-in and every set logged that day. Food and weigh-ins stay.', 'Clear this day', () => data.clearDay(date));
+    }, 'danger block') : null));
 }
 
 function checkinCard(today, go) {

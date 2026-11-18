@@ -21,14 +21,31 @@ export function totals(logs) {
 const LIQUID = /\b(milk|juice|soda|cola|pop|water|coffee|latte|tea|shake|smoothie|drink|beverage|broth|kefir|lemonade|sports drink|energy drink)\b/i;
 const PIECES = /(\d+(?:\.\d+)?)\s*(pieces?|pcs?|nuggets?|cookies?|wings?|strips?|slices?|crackers?|chips?|tenders?|eggs?|links?|patties|patty|bars?|balls?|rolls?|pancakes?|waffles?|tacos?|burgers?|sandwich(?:es)?)/i;
 
+// What one whole item is called, from the food's name (Baconator -> burger).
+const WHOLE = [
+  [/burger|baconator|whopper|big mac|cheeseburger|hamburger|quarter pounder|patty melt/i, 'burger'],
+  [/sandwich|sub\b|hoagie|panini|club\b|blt\b|biscuit sandwich/i, 'sandwich'], [/burrito/i, 'burrito'], [/\btaco/i, 'taco'],
+  [/\bwrap\b/i, 'wrap'], [/pizza/i, 'slice'], [/hot dog|frank/i, 'hot dog'], [/\bbar\b/i, 'bar'], [/muffin/i, 'muffin'],
+  [/bagel/i, 'bagel'], [/donut|doughnut/i, 'donut'], [/cookie/i, 'cookie'], [/\begg\b|\beggs\b/i, 'egg'], [/banana/i, 'banana'],
+  [/apple\b/i, 'apple'], [/orange\b/i, 'orange'], [/\bcan\b|soda|cola/i, 'can'], [/bottle|water\b/i, 'bottle'],
+  [/salad/i, 'salad'], [/bowl/i, 'bowl'], [/fries/i, 'order'], [/shake|frosty|smoothie/i, 'cup'], [/pie\b/i, 'pie'],
+];
+const wholeName = (name) => (WHOLE.find(([re]) => re.test(name)) || [, null])[1];
+const justWeight = (lbl) => !lbl || /^\s*[\d.]+\s*(g|gr|grams?|ml|oz)\s*$/i.test(lbl);
+
 export function units(food) {
   const u = [];
   if (!food.baseGrams) u.push({ id: 'serving', label: food.baseLabel || 'serving' });
-  else if (food.servingGrams) u.push({ id: 'serving', label: food.servingLabel || 'serving' });
+  else if (food.servingGrams) {
+    // the whole thing comes first: "1 burger (330 g)", never just "330 g"
+    const g = Math.round(food.servingGrams);
+    u.push({ id: 'serving', label: justWeight(food.servingLabel) ? `${wholeName(food.name) || 'serving'} (${g} g)` : food.servingLabel });
+  }
   if (food.baseGrams && food.servingGrams && food.servingLabel) {
     const m = String(food.servingLabel).match(PIECES);
-    if (m && +m[1] > 1) {
-      const word = m[2].toLowerCase().replace(/ies$/, 'y').replace(/(ches|shes)$/, (x) => x.slice(0, -2)).replace(/s$/, '');
+    const word = m && m[2].toLowerCase().replace(/ies$/, 'y').replace(/(ches|shes)$/, (x) => x.slice(0, -2)).replace(/s$/, '');
+    // pieces only when they belong to this food (no "crackers" on a burger)
+    if (m && +m[1] > 1 && (/^(piece|pc)$/.test(word) || norm(food.name).includes(word.slice(0, 5)))) {
       u.push({ id: 'piece', label: `${word || 'piece'} (${Math.round(food.servingGrams / +m[1])} g each)`, grams: food.servingGrams / +m[1] });
     }
   }
@@ -64,12 +81,14 @@ export function defaultAmount(food) {
   return { amount: food.baseGrams || 100, unit: 'g' };
 }
 
+const norm = (x) => String(x).toLowerCase();
+
 export function amountLabel(food, amount, unit) {
   if (unit === 'g') return `${amount} g`;
   if (unit === 'oz') return `${amount} oz`;
   if (unit === 'cup') return `${amount} cup${+amount === 1 ? '' : 's'}`;
   if (unit === 'floz') return `${amount} fl oz`;
   if (unit === 'piece') { const u = units(food).find((x) => x.id === 'piece'); return `${amount} × ${u ? u.label.replace(/ \(.*/, '') : 'piece'}`; }
-  const lbl = food.baseGrams ? food.servingLabel || 'serving' : food.baseLabel || 'serving';
+  const lbl = food.baseGrams ? (units(food).find((x) => x.id === 'serving') || {}).label || 'serving' : food.baseLabel || 'serving';
   return `${amount} × ${lbl}`;
 }

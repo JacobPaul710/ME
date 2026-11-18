@@ -6,7 +6,7 @@ import * as sync from './core/sync.js';
 import { iso } from './logic/dates.js';
 import { milestoneFor } from './logic/streak.js';
 import * as data from './data.js';
-import { celebrate, levelUp, tierUnlocked } from './celebrations.js';
+import { celebrate, levelUp, tierUnlocked, evolved } from './celebrations.js';
 import { unlockAudio } from './core/sfx.js';
 import { themeBackground } from './ui/levelThemes.js';
 import { renderSignIn, renderSetupNeeded } from './ui/signin.js';
@@ -16,6 +16,7 @@ import { renderFood } from './ui/food.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
 import { renderCharacter } from './ui/character.js';
+import { FORMS, formIndex, monsterById } from './ui/monster.js';
 
 const app = document.getElementById('app');
 const tabs = document.getElementById('tabs');
@@ -147,7 +148,12 @@ function checkMilestone() {
   const seen = data.combatSeen();
   if (L > seen) {
     data.setCombatSeen(L);
-    if (seen > 0) { levelUp(L); return; } // first run: just remember the level
+    if (seen > 0) {
+      // a monster that reaches a new form gets an evolution pop-up instead
+      const st = data.settings();
+      if (st.avatar !== 'knight' && formIndex(L) > formIndex(seen)) { const m = monsterById(st.monster); evolved(m.name, FORMS[formIndex(L)].name, L); return; }
+      levelUp(L); return;
+    } // first run: just remember the level
   }
   const g = data.gearInfo(today);
   const tier = g.unlocked.find((t) => !data.tierShown(t.id));
@@ -213,6 +219,14 @@ document.addEventListener('touchmove', (e) => {
   if (t.clientX - edge.x > 60 && Math.abs(t.clientY - edge.y) < 50) { edge = null; if (session()) openMenu(); }
 }, { passive: true });
 document.addEventListener('touchend', () => { edge = null; }, { passive: true });
+// With a mouse: rest the cursor on the left edge of the window for a moment to open Settings.
+let hoverTimer = null;
+document.addEventListener('mousemove', (e) => {
+  if (!matchMedia('(hover: hover)').matches) return;
+  const atEdge = e.clientX <= 8 && !menuOpen && !document.querySelector('.sheet-wrap, .celebrate');
+  if (atEdge && !hoverTimer) hoverTimer = setTimeout(() => { hoverTimer = null; if (session()) openMenu(); }, 250);
+  else if (!atEdge && hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+});
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
 window.addEventListener('tracker-signed-out', () => location.reload());
 window.addEventListener('tracker-popup-closed', () => setTimeout(checkMilestone, 300));

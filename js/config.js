@@ -10,4 +10,8 @@ export const ENDPOINTS = {
   firestore: 'https://firestore.googleapis.com/v1',
 };
 
-export const APP_VERSION = '3.34.0';
+// USDA FoodData Central (branded and restaurant foods). DEMO_KEY works but is limited to about
+// 30 searches an hour; a free personal key from https://api.data.gov/signup/ allows 1,000 an hour.
+export const FDC = { url: 'https://api.nal.usda.gov/fdc/v1', key: 'DEMO_KEY' };
+
+export const APP_VERSION = '3.42.0';

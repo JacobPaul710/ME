@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.34.0)
+## Built (version 3.42.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -93,9 +93,13 @@
 - Bluetooth food scale
 - Cardio XP
 
-**Parked for later (chosen, not built)**
-- Character or monster choice in Settings; monster evolves at combat 3, 25, 50, 80, 110 and 126
-- Monsters kept: Sandqueen, Emberwyrm, Mosslump, Gloomwing, Voidling, Antlerghast, Wraithling, Leechmaw (more horror designs wanted)
-- Knight idles: spin sword, swing sword, flex, polish shield, stab, steam from nostrils
-- Monster idles: breathe fire, stomp, roar head back, snap jaws, tail swish, swell up and flex
-- Supplements section changes and the Wendy's Baconator photo data issue (to discuss)
+**Patch 14**
+- Monster (default) or Knight on the Character tab; 9 monsters × 6 forms (combat 3/25/50/80/110/126), evolution pop-up, idles every 2–3 s
+- Note cards per exercise; "Goal hit!" message; Clear this day; editable food and workout history
+- Online food search from USDA + Open Food Facts with data checks; whole item first in units; Herblore XP on supplement check-off
+- Settings opens with a left-edge swipe (touch) or by resting the cursor on the left edge (mouse)
+
+**Later**
+- Hand-drawn later forms for a favourite monster; more horror monster designs
+- Supplements section changes (to discuss)
+- Free USDA key from api.data.gov to lift the 30-searches-an-hour limit

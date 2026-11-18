@@ -1,5 +1,5 @@
 import { h } from './dom.js';
-import { button, card, header, field, numberInput, toast, confirmSheet } from './components.js';
+import { button, card, header, field, numberInput, toast, confirmSheet, segmented } from './components.js';
 import { MACROS } from '../logic/nutrition.js';
 import { toCSV } from '../logic/csv.js';
 import { iso } from '../logic/dates.js';
@@ -11,6 +11,8 @@ import { ACTIVITY, GOALS, activityValue } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
 import { PRESETS, suggest } from '../logic/supplements.js';
 import { REST_CHOICES } from './restTimer.js';
+import { MONSTERS, monsterById } from './monster.js';
+import { evolved } from '../celebrations.js';
 import { sfx } from '../core/sfx.js';
 import { cheer } from '../core/cheers.js';
 import { celebrate, levelUp, tierUnlocked } from '../celebrations.js';
@@ -51,10 +53,22 @@ function previewSheet() {
       row('Streak milestone', () => sfx.milestone()), row('Rest bell', () => sfx.restDone())),
     row('Voice cheer', async () => { if (!(await cheer())) toast('No voice clips yet. Add them to audio/cheers.'); }),
     h('h3', { class: 'list-head' }, 'Pop-ups'),
-    h('div', { class: 'grid2' }, row('Combat level 14', () => levelUp(14)), row('Combat level 20', () => levelUp(20)),
+    h('div', { class: 'grid2' }, row('Combat level 14', () => levelUp(14)), row('Combat level 20', () => levelUp(20)), row('Monster evolves', () => evolved(monsterById(data.settings().monster).name, 'Fledgling', 25)),
       row('7-day streak', () => celebrate(7)), row('30-day streak', () => celebrate(30))),
     h('h3', { class: 'list-head' }, 'Gear tiers'),
     TIERS.map((t) => row(`${t.name} (day ${t.day})`, () => tierUnlocked(t)))));
+}
+
+// Knight or monster on the Character tab, and which monster. Saves as soon as you pick.
+function avatarCard() {
+  const st = data.settings();
+  const kind = st.avatar === 'knight' ? 'knight' : 'monster';
+  const pick = h('select', { 'aria-label': 'Monster' }, MONSTERS.map((m) => h('option', { value: m.id, selected: m.id === monsterById(st.monster).id }, `${m.name} (${m.kind})`)));
+  pick.addEventListener('change', () => data.saveSettings({ ...data.settings(), monster: pick.value }));
+  return card(h('h2', { class: 'card-title' }, 'Character'),
+    segmented([['monster', 'Monster'], ['knight', 'Knight']], kind, (v) => data.saveSettings({ ...data.settings(), avatar: v })),
+    kind === 'monster' ? field('Monster', pick) : null,
+    h('p', { class: 'sub', style: 'margin:0' }, kind === 'monster' ? 'Your monster evolves at combat levels 25, 50, 80, 110 and 126.' : 'The knight wears your gear tier.'));
 }
 
 // Pick the level card background. Saves as soon as you tap one.
@@ -180,6 +194,7 @@ export function renderSettings(root, ctx) {
         h('span', null, 'Play a cheer when I finish a set'))),
     card(h('h2', { class: 'card-title' }, 'Sounds and messages'),
       button('Preview sounds and messages', previewSheet, 'block')),
+    avatarCard(),
     themePicker(s.levelTheme),
     h('p', { class: 'sub center version' }, `Version ${APP_VERSION}`),
     // Invisible: tap the space just under the version number to check for updates.
