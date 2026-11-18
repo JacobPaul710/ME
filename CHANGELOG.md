@@ -3,6 +3,16 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.55.1 (ME patch 17)
+- 3.55.1 Forearms: "Complete" is always there, so you can finish after any number of sets.
+- 3.55.0 Forearms have their own page from the workout picker: one card per curl, the one that's due on top with a glowing border and "Up next", the one you did last underneath.
+- 3.54.0 Tapping the Workout tab always opens the workout picker (your current pick is marked).
+- 3.53.1 Fat: cut 20%, clean bulk 25%, dirty bulk 30% of calories.
+- 3.53.0 Pace picker next to Goal: Light, Moderate or Aggressive. Clean bulk +250/+375/+500 cal; dirty bulk +600/+800/+1,000; cut 0.5/0.75/1% of your weight a week. Shows if you're within the research range.
+- 3.52.0 A small pickaxe on calendar days with forearm sets.
+- 3.51.2 An old "Forearms" day pick no longer opens forearms as a regular workout.
+- 3.51.1 No rest timer when editing a past day.
+
 ## 3.51.0 (ME patch 16)
 - 3.51.0 New skill: Mining, earned from forearm reps (the optional 4th set earns 50% more).
 - 3.50.0 An exercise closes itself once every set is done (tap it to open again).

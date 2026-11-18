@@ -120,6 +120,8 @@ export const removeSet = (id) => store.remove(id);
 // Forearms: finished early (without the optional 4th set), or rested for the day.
 export const exComplete = (exId, date) => !!store.get(`excomplete:${exId}:${date}`);
 export const setExComplete = (exId, date, on) => (on ? store.put('excomplete', `excomplete:${exId}:${date}`, { exId, date }) : store.remove(`excomplete:${exId}:${date}`));
+// Forearm sets done that day (they show as a pickaxe on the calendar).
+export const forearmDay = (date) => allSets().some((s) => s.date === date && s.done && s.dayType === 'Forearms');
 export const forearmRest = (date) => !!store.get('farest:' + date);
 export const setForearmRest = (date, on) => (on ? store.put('farest', 'farest:' + date, { date }) : store.remove('farest:' + date));
 // Everything logged for a day's workout and check-in (food and weigh-in are kept).

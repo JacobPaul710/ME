@@ -94,7 +94,7 @@ function notesBlock(ex) {
 
 const opened = new Set(); // finished exercises you tapped open again (this session)
 
-function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) {
+function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = false } = {}) {
   const st = data.exerciseStatus(ex, today);
   const cardio = ex.type === 'cardio';
   const sides = !!ex.sides && !cardio;
@@ -171,7 +171,7 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) 
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
-      if (!forearm) startRest(data.settings().restSeconds || 90); // forearms don't rest
+      if (!forearm && today >= iso()) startRest(data.settings().restSeconds || 90); // no timer for forearms or when editing a past day
       // XP per skill for this set (like RuneScape's XP drops), plus any skill level-ups
       const after = data.skillInfo(iso());
       const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
@@ -203,7 +203,7 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) 
   const real = !isVirtual;
   const required = forearm ? rows.filter((r) => r.n <= 3) : rows;
   const reqDone = real && required.length > 0 && required.every((r) => r.done);
-  const finished = forearm ? reqDone && (rows.every((r) => r.done) || data.exComplete(ex.id, today)) : reqDone;
+  const finished = forearm ? (real && rows.every((r) => r.done)) || (data.exComplete(ex.id, today) && rows.some((r) => r.done)) : reqDone;
   const key = `${ex.id}:${today}`;
   if (finished && !opened.has(key)) {
     const n = rows.filter((r) => r.done).length;
@@ -211,9 +211,14 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) 
       h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'),
       h('span', { class: 'grow' }, h('span', { class: 'item-name' }, ex.name), h('span', { class: 'sub block' }, `${n} set${n === 1 ? '' : 's'} done · tap to open`)));
   }
-  const completeBtn = forearm && reqDone && !finished
-    ? button(`Complete ${ex.name}`, () => { opened.delete(key); data.setExComplete(ex.id, today, true); }, 'primary block') : null;
-  return card(
+  // Forearms: "Complete" is always there, so you can finish after any number of sets.
+  const completeBtn = forearm && !finished
+    ? button(`Complete ${ex.name}`, async () => {
+      opened.delete(key);
+      if (!rows.some((r) => r.done)) { toast('Mark at least one set done first'); return; }
+      await data.setExComplete(ex.id, today, true);
+    }, 'primary block') : null;
+  const el = card(
     tag ? h('div', { class: 'up-next' }, tag) : null,
     h('div', { class: 'row' },
       h('h2', { class: 'card-title grow' }, ex.name),
@@ -226,23 +231,45 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) 
     completeBtn,
     forearm ? null : button('+ Add set', addSet, 'block'),
     finished ? button('Close', () => { opened.delete(key); document.dispatchEvent(new CustomEvent('me:rerender')); }, 'ghost block') : null);
+  if (due) el.classList.add('due');
+  return el;
 }
 
-// Forearms: their own card every day (workout day or not). Back curl and front curl
-// alternate; the one you're due for is on top. They never count as the day's workout.
-function forearmsCard(today) {
-  const exs = data.exercisesFor('Forearms');
-  if (!exs.length) return null;
-  const resting = data.forearmRest(today);
+// Forearms: back curl one day, front curl the next. The one that's due is on top with a glow;
+// the one you did last sits underneath. They never count as the day's workout.
+const uniqueByName = (list) => [...new Map(list.map((e) => [e.name.trim().toLowerCase(), e])).values()];
+function forearmOrder(today) {
+  const exs = uniqueByName(data.exercisesFor('Forearms'));
   const last = exs.map((e) => ({ e, d: data.lastDone(e.id, addDays(today, -1)) })).filter((x) => x.d).sort((a, b) => (a.d < b.d ? 1 : -1))[0];
   const ordered = last && exs.length > 1 ? [...exs.filter((e) => e.id !== last.e.id), last.e] : exs;
-  const wrap = h('section', { class: 'stack forearms', 'aria-label': 'Forearms' },
-    h('div', { class: 'row' }, h('h2', { class: 'group-head grow', style: 'margin:0' }, 'Forearms'),
-      button(resting ? 'Undo rest' : 'Rest today', () => data.setForearmRest(today, !resting), 'ghost')),
-    h('p', { class: 'sub', style: 'margin:0' }, last ? `Last: ${last.e.name}, ${dayDate(last.d)}` : 'Alternate back curl and front curl.'));
-  if (resting) { wrap.append(h('div', { class: 'card ex-done static' }, h('span', { class: 'tick' }, '✓'), h('span', null, 'Resting forearms today'))); return wrap; }
-  ordered.forEach((e, i) => wrap.append(exerciseCard(e, 'Forearms', today, { forearm: true, tag: i === 0 && last ? 'Up next' : null })));
-  return wrap;
+  return { exs: ordered, last };
+}
+
+function forearmsView(root, today, past, go) {
+  const { exs, last } = forearmOrder(today);
+  const resting = data.forearmRest(today);
+  root.append(header('Forearms', (past ? `${nice(today)} · ` : '') + "Doesn't count as a workout day",
+    button('Change', () => go(past ? `#train/${today}.pick` : '#train/pick'), 'ghost')));
+  root.append(h('div', { class: 'row' },
+    h('p', { class: 'sub grow', style: 'margin:0' }, last ? `Last: ${last.e.name}, ${dayDate(last.d)}` : 'Alternate back curl and front curl.'),
+    button(resting ? 'Undo rest' : 'Rest today', () => data.setForearmRest(today, !resting), 'ghost')));
+  if (resting) { root.append(h('div', { class: 'card ex-done static' }, h('span', { class: 'tick' }, '✓'), h('span', null, 'Resting forearms today'))); return; }
+  if (!exs.length) { root.append(empty('No forearm exercises saved yet.')); return; }
+  exs.forEach((e, i) => root.append(exerciseCard(e, 'Forearms', today, { forearm: true, tag: i === 0 ? 'Up next' : null, due: i === 0 })));
+}
+
+// The picker: tapping the Workout tab always lands here.
+function pickerView(root, today, past, go, current) {
+  const base = past ? `#train/${today}` : '#train';
+  const { exs } = forearmOrder(today);
+  root.append(header('Workout', nice(today)),
+    card(h('h2', { class: 'card-title' }, past ? 'Pick the workout for this day' : "Pick today's workout"),
+      h('div', { class: 'stack' }, data.DAY_TYPES.map((d) => button(d.id === current ? `${d.id} ✓` : d.id,
+        async () => { if (d.id !== current) await data.setCheckin(today, 'exercise', d.id); go(base); },
+        d.id === current ? 'primary block current-pick' : 'primary block')))),
+    card(h('h2', { class: 'card-title' }, 'Forearms'),
+      h('p', { class: 'sub', style: 'margin:0' }, `${exs.length ? `Up next: ${exs[0].name}. ` : ''}Doesn't count as a workout day.`),
+      button('Forearms', () => go(past ? `#train/${today}.forearms` : '#train/forearms'), 'block')));
 }
 
 // Shake the whole screen like an earthquake when a set is completed.
@@ -348,28 +375,26 @@ function dayBlocks(exs, dayType, today, root) {
   }
 }
 
+
 export function renderTrain(root, ctx) {
   const { go } = ctx;
-  // #train/YYYY-MM-DD logs a past day; otherwise today.
-  const past = /^\d{4}-\d{2}-\d{2}$/.test(ctx.sub || '') && ctx.sub < ctx.today;
-  const today = past ? ctx.sub : ctx.today;
+  // #train, #train/pick, #train/forearms; past days: #train/YYYY-MM-DD, …/YYYY-MM-DD.pick, …/YYYY-MM-DD.forearms
+  const [d, mode] = String(ctx.sub || '').split('.');
+  const isDate = /^\d{4}-\d{2}-\d{2}$/.test(d);
+  const past = isDate && d < ctx.today;
+  const today = past ? d : ctx.today;
+  const view = isDate ? mode || '' : d || '';
   const c = data.checkin(today);
-  const dayType = c && c.type === 'exercise' ? c.dayType : null;
-  if (!dayType) {
-    root.append(header('Workout', nice(today)),
-      card(h('h2', { class: 'card-title' }, past ? 'Pick the workout for this day' : "Pick today's workout"),
-        h('div', { class: 'stack' }, data.DAY_TYPES.map((d) => button(d.later ? `${d.id} (coming later)` : d.id,
-          () => data.setCheckin(today, 'exercise', d.id), d.later ? 'block' : 'primary block', { disabled: d.later })))),
-      forearmsCard(today) || h('span'));
-    return;
-  }
+  // an old "Forearms" day pick is treated as no main workout: forearms have their own page
+  const dayType = c && c.type === 'exercise' && c.dayType !== 'Forearms' ? c.dayType : null;
+  if (view === 'forearms') return forearmsView(root, today, past, go);
+  if (view === 'pick' || !dayType) return pickerView(root, today, past, go, dayType);
   const last = data.lastDayOfType(dayType, today);
   root.append(header(`${dayType} day`, (past ? `${nice(today)} · ` : '') + (last ? `Last ${dayType} day: ${nice(last)} (${ago(last, today)})` : `First ${dayType} day`),
-    button('Change', () => pickDayType(today, go), 'ghost')));
+    button('Change', () => go(past ? `#train/${today}.pick` : '#train/pick'), 'ghost')));
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
-  const fa = forearmsCard(today);
-  if (fa) root.append(fa);
+  if (past && data.forearmDay(today)) root.append(button('Forearms for this day', () => go(`#train/${today}.forearms`), 'block'));
 }

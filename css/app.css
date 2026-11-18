@@ -490,3 +490,11 @@ html, body { overscroll-behavior-x: none; }
 .pace-tag.aggressive { background: #c0392b; }
 .card.ex-done { flex-direction: row; justify-content: flex-start; }
 .ex-done .grow { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+/* Pickaxe on calendar days with forearm sets */
+.daymark.has-pick, .calday.has-pick { position: relative; }
+.has-pick .pick { position: absolute; right: -3px; top: -4px; width: 15px; height: 15px; background: var(--card); border-radius: 50%; padding: 1px; box-shadow: 0 0 0 1px var(--line); }
+.calday.has-pick .pick { right: 2px; top: 1px; width: 13px; height: 13px; }
+.pick.mini { width: 13px; height: 13px; vertical-align: -2px; }
+/* The forearm curl that's due: glowing border */
+#view .card.due { border: 2px solid #e0a92e; box-shadow: 0 0 0 2px rgba(224, 169, 46, 0.6), 0 0 22px rgba(224, 169, 46, 0.6); }
+.current-pick { outline: 3px solid #e0a92e; outline-offset: 2px; }

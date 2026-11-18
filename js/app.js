@@ -141,7 +141,10 @@ function drawTabs() {
   tabs.onclick = (e) => {
     closeMenu();
     const a = e.target.closest('a[href^="#"]');
-    if (a) { e.preventDefault(); navigate(a.getAttribute('href')); }
+    if (!a) return;
+    e.preventDefault();
+    // the Workout tab always opens the workout picker
+    navigate(a.getAttribute('href') === '#train' ? '#train/pick' : a.getAttribute('href'));
   };
 }
 

@@ -7,7 +7,7 @@ import { session } from '../core/auth.js';
 import { APP_VERSION } from '../config.js';
 import * as data from '../data.js';
 import { LEVEL_THEMES } from './levelThemes.js';
-import { ACTIVITY, GOALS, activityValue, paceInfo } from '../logic/targets.js';
+import { ACTIVITY, GOALS, PACES, activityValue, paceInfo } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
 import { PRESETS, suggest } from '../logic/supplements.js';
 import { REST_CHOICES } from './restTimer.js';
@@ -180,18 +180,19 @@ export function renderSettings(root, ctx) {
   const gw = numberInput(pr.goalWeightLb || '', { placeholder: 'e.g. 210' });
   const paceBox = h('div', { class: 'pace', 'aria-live': 'polite' });
   const drawPace = () => {
-    const pi = paceInfo({ goal: goalSel.value, weightLb: +wt.value, goalWeightLb: +gw.value });
+    const pi = paceInfo({ goal: goalSel.value, pace: paceSel.value, weightLb: +wt.value, goalWeightLb: +gw.value });
     if (!pi) { paceBox.replaceChildren(); return; }
     const lb = `${pi.lbWeek > 0 ? '+' : '−'}${Math.abs(pi.lbWeek).toFixed(1)} lb a week (${pi.pct.toFixed(2)}% of your weight)`;
     const when = pi.atGoal ? 'You\'re at your goal weight.' : pi.wrongWay ? 'Your goal weight is the other way from this goal. Pick Cut to lose or a bulk to gain.'
       : pi.weeks ? `About ${pi.weeks} week${pi.weeks === 1 ? '' : 's'} to ${+gw.value} lb (around ${new Date(Date.now() + pi.weeks * 7 * 864e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}).` : 'Add a goal weight to see how long it takes.';
     paceBox.replaceChildren(
       h('div', { class: 'row' }, h('span', { class: 'grow' }, lb), h('span', { class: `pace-tag ${pi.label.toLowerCase()}` }, pi.label)),
-      h('div', { class: 'sub' }, `${pi.range} a week is the research range for this goal. ${when}`));
+      h('div', { class: 'sub' }, `${pi.inRange ? 'Within' : pi.pct > (goalSel.value === 'cut' ? 1 : 0.5) ? 'Faster than' : 'Slower than'} the ${pi.range}-a-week research range for ${goalSel.value === 'cut' ? 'cutting' : 'lean gain'}. ${when}`));
   };
   const goalSel = h('select', null, GOALS.map(([v, label]) => h('option', { value: v, selected: (pr.goal || 'clean') === v }, label)));
+  const paceSel = h('select', null, PACES.map(([v, label]) => h('option', { value: v, selected: (pr.pace || 'moderate') === v }, label)));
   const act = h('select', null, ACTIVITY.map(([v, label]) => h('option', { value: v, selected: activityValue(pr.activity) === v }, label)));
-  const profile = () => ({ birthday: bday.value || null, heightIn: (+ft.value || 0) * 12 + (+inch.value || 0) || null, weightLb: +wt.value || null, goalWeightLb: +gw.value || null, goal: goalSel.value, activity: act.value });
+  const profile = () => ({ birthday: bday.value || null, heightIn: (+ft.value || 0) * 12 + (+inch.value || 0) || null, weightLb: +wt.value || null, goalWeightLb: +gw.value || null, goal: goalSel.value, pace: paceSel.value, activity: act.value });
   const calc = () => {
     const t = data.calculateTargets(profile());
     if (!t) { toast('Fill in birthday, height and weight first'); return; }
@@ -207,9 +208,9 @@ export function renderSettings(root, ctx) {
   };
   let timer;
   const soon = () => { clearTimeout(timer); timer = setTimeout(save, 400); };
-  for (const el of [wt, gw, goalSel]) el.addEventListener('input', drawPace), el.addEventListener('change', drawPace);
+  for (const el of [wt, gw, goalSel, paceSel]) el.addEventListener('input', drawPace), el.addEventListener('change', drawPace);
   drawPace();
-  for (const el of [...Object.values(inputs), sessions, sexSel, bday, ft, inch, wt, gw, goalSel, act]) {
+  for (const el of [...Object.values(inputs), sessions, sexSel, bday, ft, inch, wt, gw, goalSel, paceSel, act]) {
     el.addEventListener('input', soon);
     el.addEventListener('change', () => { clearTimeout(timer); save(); });
   }
@@ -220,7 +221,7 @@ export function renderSettings(root, ctx) {
       h('div', { class: 'grid2' }, field('Sex', sexSel), field('Birthday', bday)),
       h('div', { class: 'grid2' }, field('Height (feet)', ft), field('Height (inches)', inch)),
       h('div', { class: 'grid2' }, field('Weight (lb)', wt), field('Goal weight (lb)', gw)),
-      field('Goal', goalSel),
+      h('div', { class: 'grid2' }, field('Goal', goalSel), field('Pace', paceSel)),
       paceBox,
       field('Activity outside the gym', act),
       h('p', { class: 'sub', style: 'margin:0' }, 'Workouts are added on the days you train, so leave them out of activity.'),

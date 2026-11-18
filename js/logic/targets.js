@@ -23,25 +23,32 @@ export const GOALS = [
   ['dirty', 'Dirty bulk (gain fast)'],
 ];
 // Built for maximum muscle ("Hulk mode") on every goal.
-// Fat as a share of calories; carbs fill the rest (they fuel training).
+// Each goal has a pace you pick: Light, Moderate or Aggressive.
+//  - Clean bulk: a smaller surplus; dirty bulk: a bigger one (common usage).
+//  - Cut: a share of your body weight lost per week, 0.5–1% (Helms et al. 2014).
+// Fat as a share of calories, as coaches commonly set it for bodybuilders:
+// cut 20% (more carbs left for training), clean bulk 25%, dirty bulk 30%. Carbs fill the rest.
+export const PACES = [['light', 'Light'], ['moderate', 'Moderate'], ['aggressive', 'Aggressive']];
 const GOAL_RULES = {
-  cut: { adjust: -500, proteinPerLb: 1.2, fatPct: 0.25 },   // ~1 lb a week; very high protein holds on to muscle
-  clean: { adjust: 400, proteinPerLb: 1.0, fatPct: 0.25 },  // solid surplus, mostly muscle
-  dirty: { adjust: 750, proteinPerLb: 1.0, fatPct: 0.30 },  // big surplus for the fastest gain (more fat comes with it)
+  cut: { cutPct: { light: 0.5, moderate: 0.75, aggressive: 1 }, proteinPerLb: 1.2, fatPct: 0.2 },
+  clean: { surplus: { light: 250, moderate: 375, aggressive: 500 }, proteinPerLb: 1.0, fatPct: 0.25 },
+  dirty: { surplus: { light: 600, moderate: 800, aggressive: 1000 }, proteinPerLb: 1.0, fatPct: 0.3 },
 };
-
-// Weekly pace from the calorie change (about 3,500 calories per pound), graded against the
-// research ranges as a share of body weight per week:
-//   bulk: 0.25–0.5% moderate (Iraki et al. 2019); cut: 0.5–1% moderate (Helms et al. 2014).
-export function paceInfo({ goal, weightLb, goalWeightLb }) {
+const paceOf = (p) => (['light', 'moderate', 'aggressive'].includes(p) ? p : 'moderate');
+// Daily calorie change for a goal and pace (about 3,500 calories per pound).
+export function adjustFor(goal, pace, weightLb) {
   const rule = GOAL_RULES[goal] || GOAL_RULES.clean;
+  if (rule.cutPct) return -Math.round(((rule.cutPct[paceOf(pace)] / 100) * weightLb * 3500) / 7);
+  return rule.surplus[paceOf(pace)];
+}
+
+// Weekly pace in pounds and as a share of body weight, plus time to the goal weight.
+export function paceInfo({ goal, pace, weightLb, goalWeightLb }) {
   if (!(weightLb > 0)) return null;
-  const lbWeek = (rule.adjust * 7) / 3500;
+  const lbWeek = (adjustFor(goal, pace, weightLb) * 7) / 3500;
   const pct = (Math.abs(lbWeek) / weightLb) * 100;
-  const cut = rule.adjust < 0;
-  const [lo, hi] = cut ? [0.5, 1] : [0.25, 0.5];
-  const label = pct < lo ? 'Light' : pct <= hi ? 'Moderate' : 'Aggressive';
-  const out = { lbWeek, pct, label, range: cut ? '0.5–1%' : '0.25–0.5%' };
+  const out = { lbWeek, pct, label: PACES.find(([k]) => k === paceOf(pace))[1], range: goal === 'cut' ? '0.5–1%' : '0.25–0.5%' };
+  out.inRange = goal === 'cut' ? pct >= 0.5 && pct <= 1.0001 : pct >= 0.25 && pct <= 0.5;
   if (goalWeightLb > 0) {
     const diff = goalWeightLb - weightLb;
     if (Math.abs(diff) < 0.5) out.atGoal = true;
@@ -51,7 +58,6 @@ export function paceInfo({ goal, weightLb, goalWeightLb }) {
   return out;
 }
 
-// Age today from a birthday ('YYYY-MM-DD').
 export function ageFrom(birthday, today = new Date()) {
   if (!birthday) return null;
   const [y, m, d] = birthday.split('-').map(Number);
@@ -71,11 +77,12 @@ export function dailyTargets(p, today = new Date()) {
   if (!(age > 0 && p.heightIn > 0 && p.weightLb > 0)) return null;
   const rule = GOAL_RULES[p.goal] || GOAL_RULES.clean;
   const maintain = bmr({ ...p, age }) * (+p.activity || 1.2);
-  const cal = Math.round((maintain + rule.adjust) / 10) * 10;
+  const adjust = adjustFor(p.goal, p.pace, p.weightLb);
+  const cal = Math.round((maintain + adjust) / 10) * 10;
   const protein = Math.round(rule.proteinPerLb * p.weightLb);
   const f = Math.round((cal * rule.fatPct) / 9);
   const c = Math.max(0, Math.round((cal - protein * 4 - f * 9) / 4));
-  return { cal, p: protein, c, f, maintain: Math.round(maintain), adjust: rule.adjust, age };
+  return { cal, p: protein, c, f, maintain: Math.round(maintain), adjust, age };
 }
 
 // MET 3.5 = resistance training, multiple exercises, 8–15 reps (2024 Compendium, code 02054).

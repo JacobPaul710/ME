@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.51.0)
+## Built (version 3.55.1)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -109,6 +109,10 @@
 - Goal weight with weekly pace (% of body weight) graded Light / Moderate / Aggressive; dirty bulk 30% fat
 - Forearms: own daily card, not a workout day, alternate with "Up next", optional 4th set (bonus XP), Complete button, no rest timer or goals; Mining skill
 - Finished exercises close themselves; no swipe-back between screens
+
+**Patch 17**
+- Workout tab opens the picker; forearms page (2 cards, due one glowing on top, Complete always there); pickaxe on forearm days
+- Pace per goal (Light / Moderate / Aggressive); fat 20 / 25 / 30%; no rest timer on past days
 
 **Later**
 - Hand-drawn later forms for a favourite monster; more horror monster designs
