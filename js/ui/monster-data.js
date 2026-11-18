@@ -120,36 +120,6 @@ export const MONSTERS = [
   ]
  },
  {
-  "id": "tidefang",
-  "name": "Tidefang",
-  "kind": "Land shark",
-  "pal": {
-   "a": "#3a7fb0",
-   "b": "#9fd0ef",
-   "c": "#f4f4f4",
-   "e": "#1d140c",
-   "d": "#e3364d"
-  },
-  "grid": [
-   ".......k........",
-   "......kak.......",
-   ".....kaaak......",
-   "...kkaaaaakk....",
-   "..kaaaaaaaaak...",
-   ".kaaekaaaaaaakk.",
-   "kaaaaaaaaaaaaak.",
-   "kdcdcdcdcdcaak..",
-   "kkkkkkkkkkkaak..",
-   "kcdcdcdcdcdbbak.",
-   ".kbbbbbbbbbbbak.",
-   "..kbbbbbbbbbak..",
-   "...kak...kak....",
-   "...kkk...kkk....",
-   "................",
-   "................"
-  ]
- },
- {
   "id": "voidling",
   "name": "Voidling",
   "kind": "Floating eye",

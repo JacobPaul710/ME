@@ -53,22 +53,57 @@ function previewSheet() {
       row('Streak milestone', () => sfx.milestone()), row('Rest bell', () => sfx.restDone())),
     row('Voice cheer', async () => { if (!(await cheer())) toast('No voice clips yet. Add them to audio/cheers.'); }),
     h('h3', { class: 'list-head' }, 'Pop-ups'),
-    h('div', { class: 'grid2' }, row('Combat level 14', () => levelUp(14)), row('Combat level 20', () => levelUp(20)), row('Monster evolves', () => evolved(monsterById(data.settings().monster).name, 'Fledgling', 25)),
+    h('div', { class: 'grid2' }, row('Combat level 14', () => levelUp(14)), row('Combat level 20', () => levelUp(20)), row('Monster evolves', () => evolved(data.activeChar().name || monsterById(data.activeChar().monster).name, 'Fledgling', 25)),
       row('7-day streak', () => celebrate(7)), row('30-day streak', () => celebrate(30))),
     h('h3', { class: 'list-head' }, 'Gear tiers'),
     TIERS.map((t) => row(`${t.name} (day ${t.day})`, () => tierUnlocked(t)))));
 }
 
-// Knight or monster on the Character tab, and which monster. Saves as soon as you pick.
+// Your character is locked in once picked. Starting a new one pauses the current one at its
+// level; you can switch back any time and keep levelling it.
+const charLabel = (c) => `${c.name || (c.kind === 'knight' ? 'Knight' : monsterById(c.monster).name)} (${c.kind === 'knight' ? 'Knight' : monsterById(c.monster).name})`;
+
+function renameSheet(c) {
+  const name = h('input', { type: 'text', value: c.name || '', maxlength: '24', placeholder: 'Name' });
+  const s = sheet('Name your character', field('Name', name), [button('Save', async () => {
+    if (!name.value.trim()) { name.focus(); return; }
+    await data.renameChar(c.id, name.value.trim()); s.close();
+  }, 'primary block')]);
+}
+
+function newCharSheet() {
+  const today = todayIso();
+  const cur = data.activeChar();
+  const curLevel = data.skillInfo(today).combat;
+  let kind = 'monster';
+  const pick = h('select', { 'aria-label': 'Monster' }, MONSTERS.map((m) => h('option', { value: m.id }, `${m.name} (${m.kind})`)));
+  const name = h('input', { type: 'text', maxlength: '24', placeholder: 'e.g. Grimjaw' });
+  const pickWrap = h('div', null, field('Monster', pick));
+  const kindSeg = h('div', null);
+  const drawKind = () => { kindSeg.replaceChildren(segmented([['monster', 'Monster'], ['knight', 'Knight']], kind, (v) => { kind = v; pickWrap.hidden = v !== 'monster'; drawKind(); })); };
+  drawKind();
+  const s = sheet('Start a new character', h('div', { class: 'stack' },
+    h('p', { class: 'sub', style: 'margin:0' }, `Current: ${charLabel(cur)} · combat level ${curLevel}. It pauses at this level, and you can switch back to it any time.`),
+    kindSeg, pickWrap, field('Name', name),
+    h('p', { class: 'sub', style: 'margin:0' }, 'The new character starts at combat level 3. Only workouts and check-ins from today on count toward it.')), [
+    button('Start new character', async () => {
+      if (!name.value.trim()) { toast('Give it a name'); name.focus(); return; }
+      await data.newCharacter({ kind, monster: kind === 'monster' ? pick.value : null, name: name.value.trim() }, today);
+      s.close(); toast(`${name.value.trim()} is ready`);
+    }, 'primary block')]);
+}
+
 function avatarCard() {
-  const st = data.settings();
-  const kind = st.avatar === 'knight' ? 'knight' : 'monster';
-  const pick = h('select', { 'aria-label': 'Monster' }, MONSTERS.map((m) => h('option', { value: m.id, selected: m.id === monsterById(st.monster).id }, `${m.name} (${m.kind})`)));
-  pick.addEventListener('change', () => data.saveSettings({ ...data.settings(), monster: pick.value }));
+  const today = todayIso();
+  const cur = data.activeChar();
+  const others = data.characters().filter((c) => c.id !== cur.id);
   return card(h('h2', { class: 'card-title' }, 'Character'),
-    segmented([['monster', 'Monster'], ['knight', 'Knight']], kind, (v) => data.saveSettings({ ...data.settings(), avatar: v })),
-    kind === 'monster' ? field('Monster', pick) : null,
-    h('p', { class: 'sub', style: 'margin:0' }, kind === 'monster' ? 'Your monster evolves at combat levels 25, 50, 80, 110 and 126.' : 'The knight wears your gear tier.'));
+    h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'sub' }, 'Current'), h('div', { class: 'item-name' }, `${charLabel(cur)} · combat level ${data.skillInfo(today).combat}`)),
+      button(cur.name ? 'Rename' : 'Name it', () => renameSheet(cur), 'ghost')),
+    others.length ? h('div', { class: 'list' }, others.map((c) => h('div', { class: 'item' },
+      h('span', { class: 'item-main' }, h('span', { class: 'item-name' }, charLabel(c)), h('span', { class: 'sub' }, `Paused · combat level ${data.skillInfo(today, today, c).combat}`)),
+      button('Switch', () => confirmSheet(`Switch to ${c.name || charLabel(c)}?`, `${cur.name || charLabel(cur)} pauses at combat level ${data.skillInfo(today).combat}. You can switch back any time.`, 'Switch', () => data.switchCharacter(c.id, today)), 'ghost')))) : null,
+    button('Start a new character', newCharSheet, 'block'));
 }
 
 // Pick the level card background. Saves as soon as you tap one.
@@ -129,7 +164,7 @@ function restCard() {
   const rest = h('select', { 'aria-label': 'Rest between sets' },
     REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
   rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
-  return card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Rest between sets'), rest));
+  return card(h('h2', { class: 'card-title' }, 'Rest between sets'), rest);
 }
 
 export function renderSettings(root, ctx) {

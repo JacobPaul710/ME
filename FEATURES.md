@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.42.0)
+## Built (version 3.45.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -98,6 +98,12 @@
 - Note cards per exercise; "Goal hit!" message; Clear this day; editable food and workout history
 - Online food search from USDA + Open Food Facts with data checks; whole item first in units; Herblore XP on supplement check-off
 - Settings opens with a left-edge swipe (touch) or by resting the cursor on the left edge (mouse)
+
+**Patch 15**
+- Named characters that lock in; start new ones (old ones pause at their level); switch between them
+- Heart on touch, longer animations, a backdrop per character; 8 monsters (Tidefang removed)
+- Weekly recap on Mondays and in History → Weeks; USDA basic foods built in for offline use
+- Combat number in pixel font; slimmer combat card back; rest dropdown layout fix
 
 **Later**
 - Hand-drawn later forms for a favourite monster; more horror monster designs

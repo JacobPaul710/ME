@@ -1,7 +1,7 @@
 import { h, fmt, svg } from './dom.js';
 import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot, confirmSheet } from './components.js';
 import { streakWidget } from './streakWidget.js';
-import { nice, iso, parse } from '../logic/dates.js';
+import { nice, iso, parse, addDays, short } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
 import * as data from '../data.js';
 import { session } from '../core/auth.js';
@@ -125,20 +125,39 @@ export function levelCardView(C, theme, onTap) {
           onTap && !max ? h('span', null, 'Tap to flip') : null))));
 }
 
-// Back of the combat card: what's done toward the next level and what's still needed.
+// Back of the combat card: what's still needed for the next level (any one of these).
 function combatBack(C, theme) {
   const max = C.combat >= COMBAT_MAX;
   return h('div', { class: `card level level-back theme-${theme}` }, themeBackground(theme),
     h('div', { class: 'stack tight level-body' },
-      h('div', { class: 'level-title' }, max ? `Combat level ${C.combat}: maxed` : `Toward combat level ${C.combat + 1}`),
-      max ? null : [
-        h('div', { class: 'back-head' }, 'Done'),
-        C.done.length ? C.done.map((d) => h('div', { class: 'back-line done' }, `✓ ${d.name} +${d.gained} level${d.gained === 1 ? '' : 's'}`))
-          : h('div', { class: 'back-line' }, 'Nothing yet since your last combat level'),
-        h('div', { class: 'back-head' }, 'Still needed (any one)'),
-        C.needs.map((n) => h('div', { class: 'back-line' }, `${n.levels} more ${n.names} level${n.levels === 1 ? '' : 's'}`)),
-      ],
-      h('div', { class: 'back-hint' }, 'Tap to flip back')));
+      h('div', { class: 'level-title' }, max ? `Combat level ${C.combat}: maxed` : `Still needed for combat level ${C.combat + 1}`),
+      max ? null : C.needs.map((n) => h('div', { class: 'back-line' }, `${n.levels} more ${n.names} level${n.levels === 1 ? '' : 's'}`)),
+      h('div', { class: 'back-hint' }, 'Any one of these · tap to flip back')));
+}
+
+// Weekly recap: shown on Today every Monday for the week that just ended, and kept in History.
+export function recapView(r, title) {
+  const tg = r.targets || {};
+  const line = (label, value) => h('div', { class: 'recap-line' }, h('span', { class: 'grow' }, label), h('span', { class: 'num' }, value));
+  const sign = (n, d = 1) => `${n > 0 ? '+' : ''}${fmt(n, d)}`;
+  return h('section', { class: 'card recap', 'aria-label': title },
+    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, title), h('span', { class: 'sub' }, `${short(r.start)} – ${short(r.end)}`)),
+    line('Workouts', `${r.workouts} of 5`),
+    line('Sets done', fmt(r.sets)),
+    line('Weight lifted', `${fmt(r.lifted)} lb`),
+    line('Combat level', r.combatTo > r.combatFrom ? `${r.combatFrom} → ${r.combatTo}` : String(r.combatTo)),
+    line('Skill levels gained', r.gained.length ? r.gained.map((g) => `${g.name} +${g.n}`).join(', ') : 'None'),
+    line('Days on your streak', `${r.streakDays} of 7`),
+    r.foodDays ? line('Average calories', `${fmt(r.avgCal)}${tg.cal ? ` / ${fmt(tg.cal)}` : ''}`) : line('Food', 'Nothing logged'),
+    r.foodDays ? line('Average protein', `${fmt(r.avgProtein)} g${tg.p ? ` / ${fmt(tg.p)} g` : ''}`) : null,
+    line('Weight change', r.weightChange == null ? 'Needs 2 weigh-ins' : `${sign(r.weightChange)} lb`));
+}
+
+function recapCard(today) {
+  if (parse(today).getDay() !== 1) return null; // Mondays only
+  const r = data.weekRecap(addDays(today, -7), today);
+  if (!r.sets && !r.foodDays && r.weightChange == null) return null;
+  return recapView(r, 'Last week');
 }
 
 export function combatSheet(today) {
@@ -202,6 +221,7 @@ export function renderToday(root, ctx) {
     (() => { const [l, r] = braziers(); startFlames(); return h('header', { class: 'hero' }, l,
       h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
     levelCard(today),
+    recapCard(today),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),
     weighCard(today, go),

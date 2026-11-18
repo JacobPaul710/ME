@@ -1,7 +1,7 @@
 import { h, fmt } from './dom.js';
 import { button, card, header, segmented, empty, sheet, confirmSheet } from './components.js';
 import { lineChart } from './chart.js';
-import { weighSheet } from './today.js';
+import { weighSheet, recapView } from './today.js';
 import { nice } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
 import { weightSummary } from '../logic/stats.js';
@@ -107,9 +107,14 @@ function weightHistory(today) {
 }
 
 export function renderHistory(root, ctx) {
-  const tab = ['workouts', 'food', 'weight'].includes(ctx.sub) ? ctx.sub : 'workouts';
+  const tab = ['workouts', 'food', 'weight', 'weeks'].includes(ctx.sub) ? ctx.sub : 'workouts';
   root.append(header('History'),
-    segmented([['workouts', 'Workouts'], ['food', 'Food'], ['weight', 'Weight']], tab, (v) => ctx.go(`#history/${v}`)));
+    segmented([['workouts', 'Workouts'], ['food', 'Food'], ['weight', 'Weight'], ['weeks', 'Weeks']], tab, (v) => ctx.go(`#history/${v}`)));
+  if (tab === 'weeks') {
+    const weeks = data.weekRecaps(ctx.today);
+    root.append(weeks.length ? h('div', { class: 'stack' }, weeks.map((r) => recapView(r, 'Week'))) : empty('Your first weekly recap shows up after your first full week.'));
+    return;
+  }
   if (tab === 'workouts') {
     const { current, best } = data.streakInfo(ctx.today);
     root.append(card(h('div', { class: 'row' },

@@ -3,6 +3,14 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.45.0 (ME patch 15)
+- 3.45.0 Characters: your pick locks in and you can name it. "Start a new character" pauses the current one at its level (it shows you which one and its level); the new one starts at combat level 3 and only counts activity from that day. Switch back to a paused one any time. A heart floats up when you touch it; idles and tap animations last about twice as long, one every 4–6 seconds. Each monster and the knight has its own quiet backdrop. Tidefang removed (8 monsters).
+- 3.44.0 The USDA basic foods list is built into the app (by a GitHub Action), so it downloads once and works offline on every device.
+- 3.43.0 Weekly recap: on Mondays, Today shows last week (workouts, sets, weight lifted, combat and skill levels, streak days, average calories and protein, weight change). Past weeks in History → Weeks.
+- 3.42.3 Rest-between-sets dropdown no longer overlaps its label in Settings.
+- 3.42.2 Back of the combat card: just "Still needed for combat level N" and the options (the Done list is gone).
+- 3.42.1 The combat level number on the card uses the pixel font (same colour).
+
 ## 3.42.0 (ME patch 14)
 - 3.42.0 Monster mode (default) or Knight, picked in Settings. 9 monsters, each with 6 forms that unlock at combat 3, 25, 50, 80, 110 and 126, with an evolution pop-up. Idles every 2–3 seconds (monster: breath, stomp, roar, snap, tail swish, swell; knight: spin sword, swing, flex, polish shield, stab, steam). The knight now carries a shield.
 - 3.41.0 With a mouse, rest the cursor on the left edge of the window to open Settings.

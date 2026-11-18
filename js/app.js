@@ -150,8 +150,8 @@ function checkMilestone() {
     data.setCombatSeen(L);
     if (seen > 0) {
       // a monster that reaches a new form gets an evolution pop-up instead
-      const st = data.settings();
-      if (st.avatar !== 'knight' && formIndex(L) > formIndex(seen)) { const m = monsterById(st.monster); evolved(m.name, FORMS[formIndex(L)].name, L); return; }
+      const ch = data.activeChar();
+      if (ch.kind !== 'knight' && formIndex(L) > formIndex(seen)) { evolved(ch.name || monsterById(ch.monster).name, FORMS[formIndex(L)].name, L); return; }
       levelUp(L); return;
     } // first run: just remember the level
   }

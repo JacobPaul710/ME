@@ -63,7 +63,21 @@ function puff(box, { x, y, dx, dy, glyphs, colors, n = 8, cls = '' }) {
   }
 }
 
-// Idles: one plays every 2–3 seconds.
+// A quiet backdrop for each one, drawn in soft, low-contrast colours so the figure stays the focus.
+const SCENES = {
+  knight: `<rect width="300" height="200" fill="#dfe8ee"/><path d="M0 120 h40 v-30 h12 v-8 h8 v8 h12 v-8 h8 v8 h12 v30 h208 v80 H0z" fill="#c9cfd4"/><rect x="58" y="96" width="14" height="24" rx="7" fill="#b7bec4"/><rect y="150" width="300" height="50" fill="#c8d6b4"/>`,
+  sandqueen: `<rect width="300" height="200" fill="#f3e2bd"/><circle cx="240" cy="48" r="22" fill="#f7eacb"/><path d="M0 140 Q60 110 130 135 T300 125 V200 H0z" fill="#e8cf9c"/><path d="M0 165 Q90 140 170 162 T300 158 V200 H0z" fill="#dfc28a"/>`,
+  emberwyrm: `<rect width="300" height="200" fill="#3a2422"/><path d="M0 150 L50 95 L90 130 L140 70 L190 125 L240 90 L300 140 V200 H0z" fill="#4a2c27"/><path d="M135 78 l5 -10 l5 10z" fill="#c85a2a" opacity=".6"/><rect y="168" width="300" height="32" fill="#2c1b19"/><circle cx="70" cy="60" r="1.6" fill="#ff9a4a" opacity=".5"/><circle cx="220" cy="40" r="1.4" fill="#ff9a4a" opacity=".5"/>`,
+  mosslump: `<rect width="300" height="200" fill="#dce6d2"/><path d="M0 150 Q40 120 80 150 Q130 115 180 148 Q240 118 300 150 V200 H0z" fill="#b9cda5"/><rect x="20" y="40" width="10" height="120" fill="#c7d3b8"/><rect x="262" y="30" width="12" height="130" fill="#c7d3b8"/><rect y="170" width="300" height="30" fill="#a8bf93"/>`,
+  gloomwing: `<rect width="300" height="200" fill="#2e2a3a"/><path d="M0 0 H300 V18 L280 50 L268 18 L240 40 L226 18 L190 60 L176 18 L120 36 L104 18 L70 48 L56 18 L30 34 L18 18 L0 30z" fill="#3a3549"/><rect y="170" width="300" height="30" fill="#25222f"/>`,
+  voidling: `<rect width="300" height="200" fill="#1e1a2e"/><circle cx="40" cy="30" r="1.2" fill="#c9b8ff" opacity=".6"/><circle cx="120" cy="60" r="1" fill="#c9b8ff" opacity=".5"/><circle cx="210" cy="25" r="1.4" fill="#c9b8ff" opacity=".6"/><circle cx="270" cy="80" r="1" fill="#c9b8ff" opacity=".5"/><circle cx="80" cy="110" r="1" fill="#c9b8ff" opacity=".4"/><ellipse cx="150" cy="178" rx="120" ry="14" fill="#2c2545"/>`,
+  antlerghast: `<rect width="300" height="200" fill="#2a2d2a"/><path d="M30 200 V60 M28 90 l-14 -16 M32 110 l14 -14 M270 200 V50 M268 80 l-16 -14 M272 105 l14 -12" stroke="#3a3e3a" stroke-width="6"/><rect y="150" width="300" height="50" fill="#353a35" opacity=".8"/><rect y="130" width="300" height="20" fill="#4a504a" opacity=".25"/>`,
+  wraithling: `<rect width="300" height="200" fill="#2b2f3d"/><circle cx="235" cy="45" r="18" fill="#c9d2e3" opacity=".35"/><path d="M40 170 v-24 a10 10 0 0 1 20 0 v24z M235 170 v-18 a8 8 0 0 1 16 0 v18z" fill="#3a3f50"/><rect y="168" width="300" height="32" fill="#232633"/><rect y="150" width="300" height="18" fill="#cfd8e3" opacity=".08"/>`,
+  leechmaw: `<rect width="300" height="200" fill="#2e2224"/><ellipse cx="150" cy="95" rx="140" ry="110" fill="#3a2a2d"/><ellipse cx="150" cy="95" rx="95" ry="75" fill="#33252a"/><rect y="168" width="300" height="32" fill="#271c1e"/><ellipse cx="80" cy="172" rx="30" ry="4" fill="#4a5a32" opacity=".5"/>`,
+};
+const scene = (id) => svg(`<svg class="char-scene" viewBox="0 0 300 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${SCENES[id] || SCENES.knight}</svg>`);
+
+// Idles: one plays every 4–6 seconds and lasts about 2–3 seconds.
 export const KNIGHT_IDLES = ['spin', 'swing', 'flex', 'polish', 'stab', 'steam'];
 export const MONSTER_IDLES = ['fire', 'stomp', 'roar', 'snap', 'swish', 'swell'];
 const BREATH = { emberwyrm: ['fire'], sandqueen: ['sand'], mosslump: ['spores'], gloomwing: ['shriek'], tidefang: ['bubbles'], voidling: ['void'], antlerghast: ['mist'], wraithling: ['mist'], leechmaw: ['spit'] };
@@ -91,7 +105,7 @@ export function playIdle(box, kind, name, monsterId) {
     puff(box, { x: 58, y: 55, dx: 90, dy: -10, ...f, n: 10, cls: 'breath' });
   }
   if (kind === 'monster' && name === 'roar') puff(box, { x: 55, y: 35, dx: 60, dy: -50, glyphs: ['!'], colors: ['#e3364d'], n: 2 });
-  setTimeout(() => { fig.classList.remove(`id-${name}`); box.querySelectorAll('.puff').forEach((n) => n.remove()); }, 1500);
+  setTimeout(() => { fig.classList.remove(`id-${name}`); box.querySelectorAll('.puff').forEach((n) => n.remove()); }, 3000);
 }
 
 function startIdles(box, kind, monsterId) {
@@ -99,7 +113,7 @@ function startIdles(box, kind, monsterId) {
   const tick = () => {
     if (!box.isConnected) return; // left the screen
     if (!box.dataset.busy) playIdle(box, kind, list[Math.floor(Math.random() * list.length)], monsterId);
-    setTimeout(tick, 2000 + Math.random() * 1000);
+    setTimeout(tick, 4000 + Math.random() * 2000);
   };
   setTimeout(tick, 1200);
 }
@@ -118,7 +132,7 @@ function animate(box) {
     const n = h('span', { class: `fx fx-${fx}`, 'aria-hidden': 'true', style: `--x:${Math.round(Math.random() * 160 - 80)}px;--y:${Math.round(-60 - Math.random() * 90)}px;--d:${(Math.random() * 0.35).toFixed(2)}s;--r:${Math.round(Math.random() * 360 - 180)}deg;color:${colors[i % colors.length]}` }, glyphs[i % glyphs.length]);
     box.append(n);
   }
-  setTimeout(() => { box.querySelectorAll('.fx').forEach((n) => n.remove()); fig.setAttribute('class', 'sprite'); }, 1600);
+  setTimeout(() => { box.querySelectorAll('.fx').forEach((n) => n.remove()); fig.setAttribute('class', 'sprite'); }, 3200);
 }
 
 // ---------- skill icons (original, simple) ----------
@@ -160,15 +174,20 @@ export function renderCharacter(root, ctx) {
   const streak = data.streakInfo(today);
   const skills = data.skillInfo(today);
   const tier = gear.current;
-  const st = data.settings();
-  const kind = st.avatar === 'knight' ? 'knight' : 'monster';
-  const mon = monsterById(st.monster);
+  const ch = data.activeChar();
+  const kind = ch.kind === 'knight' ? 'knight' : 'monster';
+  const mon = monsterById(ch.monster);
+  const title = ch.name || (kind === 'knight' ? 'Your knight' : mon.name);
   const fi = formIndex(skills.combat);
   const next = FORMS[fi + 1];
   const box = h('button', { type: 'button', class: `char-figure ${kind}`, 'aria-label': kind === 'knight' ? 'Your character. Tap for an animation' : `Your ${mon.name}. Tap for an animation` },
-    kind === 'knight' ? sprite(tier?.id || 'none') : monsterSvg(mon, fi));
+    scene(kind === 'knight' ? 'knight' : mon.id), kind === 'knight' ? sprite(tier?.id || 'none') : monsterSvg(mon, fi));
   box.addEventListener('click', () => {
-    box.dataset.busy = '1'; setTimeout(() => delete box.dataset.busy, 1700);
+    box.dataset.busy = '1'; setTimeout(() => delete box.dataset.busy, 3400);
+    // you bonded: a heart floats up every time you touch him
+    box.querySelectorAll('.bond-heart').forEach((n) => n.remove());
+    const heart = h('span', { class: 'bond-heart', 'aria-hidden': 'true' }, '♥');
+    box.append(heart); setTimeout(() => heart.remove(), 2300);
     if (kind === 'knight') animate(box);
     else { const name = MONSTER_IDLES[Math.floor(Math.random() * MONSTER_IDLES.length)]; playIdle(box, 'monster', name, mon.id); box.dataset.anim = name; }
   });
@@ -177,7 +196,7 @@ export function renderCharacter(root, ctx) {
     header('Character'),
     card(h('div', { class: 'char-hero' }, box,
       h('button', { type: 'button', class: 'char-name', onClick: () => combatSheet(today) }, `Combat level ${skills.combat}`),
-      kind === 'monster' ? h('div', { class: 'char-form' }, `${mon.name} · ${FORMS[fi].name} form`) : null,
+      h('div', { class: 'char-form' }, kind === 'monster' ? `${title}${ch.name ? ` the ${mon.name}` : ''} · ${FORMS[fi].name} form` : title),
       h('div', { class: 'sub' }, kind === 'monster'
         ? (next ? `Evolves at combat level ${next.level} · ${streak.current} day streak` : `Final form · ${streak.current} day streak`)
         : `${tier ? `${tier.name} gear` : 'No gear tier yet'} · ${streak.current} day streak`))),

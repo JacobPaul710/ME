@@ -1,0 +1,28 @@
+# Builds data/usda-foods.json (the basic foods list that works offline) on GitHub's servers
+# from the free USDA SR Legacy download, and commits it. Runs when this file or the build
+# script changes, or by hand from the Actions tab ("Run workflow").
+name: Build USDA basic foods
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/usda-foods.yml', 'tools/build-usda.py']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Build the food list
+        run: python3 tools/build-usda.py
+      - name: Commit it
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data/usda-foods.json
+          git diff --cached --quiet && echo "No change" && exit 0
+          git commit -m "Build USDA basic foods list"
+          git push

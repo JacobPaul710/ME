@@ -265,23 +265,85 @@ export function toggleSupp(date, id) {
   return store.put('supp', 'supp:' + date, { date, taken: t.includes(id) ? t.filter((x) => x !== id) : [...t, id] });
 }
 // Each day counts as the share of your current supplements you took (all = 1).
-export function suppDays(asOf = '9999') {
+export function suppDays(asOf = '9999', keep = () => true) {
   const ids = new Set(supplements().map((s) => s.id));
   if (!ids.size) return 0;
-  return store.all('supp').filter((r) => r.date <= asOf).reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
+  return store.all('supp').filter((r) => r.date <= asOf && keep(r.date)).reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
+}
+
+// ---- weekly recap (Monday to Sunday) ----
+export const weekStart = (date) => { const d = parse(date); return addDays(date, -((d.getDay() + 6) % 7)); };
+export function weekRecap(start, today) {
+  const end = addDays(start, 6);
+  const inWeek = (d) => d >= start && d <= end;
+  const sets = allSets().filter((s) => s.done && inWeek(s.date));
+  const days = new Set(sets.map((s) => s.date));
+  const lifted = sets.reduce((a, s) => a + (+s.weight || 0) * (s.repsR != null || s.repsL != null ? (+s.repsR || 0) + (+s.repsL || 0) : +s.reps || 0), 0);
+  const before = skillInfo(today, addDays(start, -1)), after = skillInfo(today, end < today ? end : today);
+  const gained = after.list.map((sk, i) => ({ name: sk.name, n: sk.level - before.list[i].level })).filter((g) => g.n > 0);
+  const food = foodDays().filter((d) => inWeek(d.date));
+  const avg = (k) => (food.length ? food.reduce((a, d) => a + d.totals[k], 0) / food.length : null);
+  const ws = weighins().filter((w) => inWeek(w.date));
+  const streakDays = [...streakInfo(today).dates].filter(inWeek).length;
+  return {
+    start, end, workouts: days.size, sets: sets.length, lifted: Math.round(lifted), gained,
+    combatFrom: before.combat, combatTo: after.combat, streakDays,
+    foodDays: food.length, avgCal: avg('cal'), avgProtein: avg('p'), targets: settings().targets,
+    weightChange: ws.length >= 2 ? ws[ws.length - 1].lb - ws[0].lb : null,
+  };
+}
+// Every finished week with anything logged, newest first.
+export function weekRecaps(today) {
+  const dates = [...allSets().filter((s) => s.done).map((s) => s.date), ...foodDays().map((d) => d.date), ...weighins().map((w) => w.date)];
+  const thisWeek = weekStart(today);
+  const starts = [...new Set(dates.map(weekStart))].filter((w) => w < thisWeek).sort().reverse();
+  return starts.map((w) => weekRecap(w, today));
 }
 
 // ---- skills and combat level ----
-function skillInput(today, asOf = today) {
+// ---- characters: each one levels only from the days it was the active one ----
+// { id, kind: 'monster' | 'knight', monster, name, periods: [[from, to|null]] }
+// Before any character is saved, the first one covers all of your history.
+export function characters() {
+  const st = settings();
+  if (st.characters && st.characters.length) return st.characters;
+  return [{ id: 'c1', kind: st.avatar === 'knight' ? 'knight' : 'monster', monster: st.monster || 'sandqueen', name: '', periods: [['', null]] }];
+}
+export const activeChar = () => { const cs = characters(); return cs.find((c) => c.id === settings().activeChar) || cs[0]; };
+const inPeriods = (c, d) => c.periods.some(([a, b]) => d >= a && (b == null || d <= b));
+const saveChars = (list, activeId) => saveSettings({ ...settings(), characters: list, activeChar: activeId });
+export const renameChar = (id, name) => { const cs = characters(); return saveChars(cs.map((c) => (c.id === id ? { ...c, name } : c)), activeChar().id); };
+// Pause the current character (its last day is yesterday) and start or resume another from today.
+function pauseAndStart(cs, today, next) {
+  const cur = activeChar();
+  const y = addDays(today, -1);
+  const paused = cs.map((c) => (c.id === cur.id ? { ...c, periods: c.periods.map(([a, b]) => [a, b == null ? y : b]) } : c));
+  return paused.map((c) => (c.id === next.id ? next : c)).concat(paused.some((c) => c.id === next.id) ? [] : [next]);
+}
+export async function newCharacter({ kind, monster, name }, today) {
+  const id = 'c' + Date.now().toString(36);
+  const next = { id, kind, monster, name, periods: [[today, null]] };
+  await saveChars(pauseAndStart(characters(), today, next), id);
+  await store.put('combatseen', 'combatseen:' + id, { level: 3 });
+}
+export async function switchCharacter(id, today) {
+  const cs = characters();
+  const c = cs.find((x) => x.id === id);
+  if (!c || c.id === activeChar().id) return;
+  await saveChars(pauseAndStart(cs, today, { ...c, periods: [...c.periods, [today, null]] }), id);
+}
+
+function skillInput(today, asOf = today, char = activeChar()) {
   const target = +settings().targets.p || 0;
+  const keep = (d) => d <= asOf && inPeriods(char, d);
   return {
-    sets: allSets().filter((s) => s.date <= asOf), exercises: exercises(),
-    streakDays: new Set([...streakInfo(today).dates].filter((d) => d <= asOf)),
-    proteinDays: target ? foodDays().filter((d) => d.date <= asOf && d.totals.p >= target).length : 0,
-    suppDays: suppDays(asOf),
+    sets: allSets().filter((s) => keep(s.date)), exercises: exercises(),
+    streakDays: new Set([...streakInfo(today).dates].filter(keep)),
+    proteinDays: target ? foodDays().filter((d) => keep(d.date) && d.totals.p >= target).length : 0,
+    suppDays: suppDays(asOf, keep),
   };
 }
-export const skillInfo = (today, asOf = today) => skillLevels(skillInput(today, asOf));
+export const skillInfo = (today, asOf = today, char) => skillLevels(skillInput(today, asOf, char));
 
 // Combat level card: progress since the current combat level was reached, and what's still needed.
 export function combatInfo(today) {
@@ -300,8 +362,9 @@ export function combatInfo(today) {
   const done = now.list.filter((s) => s.combat && s.level > then.levels[s.id]).map((s) => ({ id: s.id, name: s.name, gained: s.level - then.levels[s.id] }));
   return { ...now, reached, done, needs: combatNeeds(now.levels) };
 }
-export const combatSeen = () => (store.get('combatseen') || {}).level || 0;
-export const setCombatSeen = (level) => store.put('combatseen', 'combatseen', { level });
+const seenKey = () => (activeChar().id === 'c1' ? 'combatseen' : 'combatseen:' + activeChar().id);
+export const combatSeen = () => (store.get(seenKey()) || {}).level || 0;
+export const setCombatSeen = (level) => store.put('combatseen', seenKey(), { level });
 
 // Food days, newest first: [{date, totals}]
 export function foodDays() {
