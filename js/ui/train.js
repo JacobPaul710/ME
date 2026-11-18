@@ -1,7 +1,7 @@
 import { h, fmt } from './dom.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
-import { nice, ago, short, iso } from '../logic/dates.js';
+import { nice, ago, iso, parse } from '../logic/dates.js';
 import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
 import { cheer } from '../core/cheers.js';
@@ -19,25 +19,34 @@ function plan(ex, st) {
   return src.map((s, i) => ({ n: i + 1, weight: s.weight ?? null, reps: s.reps ?? null, repsR: s.repsR ?? null, repsL: s.repsL ?? null, done: false, virtual: true }));
 }
 
-function infoLine(ex, st) {
+// The previous workout for this exercise (never today's), on its own line.
+function lastWorkout(ex, st) {
   if (ex.type === 'cardio') {
-    if (!st.last) return [h('span', { class: 'chip' }, 'No previous session')];
+    if (!st.last) return h('div', { class: 'last-workout' }, 'No previous workout');
     const s = st.last.sets[0] || {};
-    return [h('span', { class: 'chip' }, `Last: ${s.minutes ?? '—'} min${s.miles ? `, ${s.miles} mi` : ''} · ${short(st.last.date)}`)];
+    return h('div', { class: 'last-workout' }, h('span', { class: 'lw-label' }, 'Last workout: '), `${dayDate(st.last.date)} · ${s.minutes ?? '—'} min${s.miles ? `, ${s.miles} mi` : ''}`);
   }
-  return [
-    h('span', { class: 'chip' }, `Rep range ${st.start}${st.top !== st.start ? `–${st.top}` : ''}`),
-    h('span', { class: 'chip' }, st.last ? `Last: ${short(st.last.date)}` : ex.baseline ? 'Last: from your sheet' : 'No previous session'),
-  ];
+  if (st.last) return h('div', { class: 'last-workout' }, h('span', { class: 'lw-label' }, 'Last workout: '), dayDate(st.last.date));
+  return h('div', { class: 'last-workout' }, ex.baseline ? 'Last workout: from your sheet' : 'No previous workout');
 }
+const dayDate = (d) => parse(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
-// Under each set: its goal, sessions hit, and last time's reps with the change.
+// Under each set: how many more workouts at this goal before the goal goes up a rep.
 function setMeta(ex, st, i) {
   const s = st.sets[i];
-  if (!s) return `Goal ${st.start}`;
-  const last = s.repsR != null || s.repsL != null ? `R ${s.repsR ?? '—'} / L ${s.repsL ?? '—'}` : s.reps != null ? `${s.reps}` : '—';
-  const ch = s.change ? ` (${s.change > 0 ? '+' : ''}${s.change})` : '';
-  return `Goal ${s.goal} · hit ${s.hits}/${st.needed} · last ${s.weight ?? '—'} lb × ${last}${ch}`;
+  if (s && s.goal >= st.top && s.hits >= st.needed) return 'Top of the range: ready to go up in weight';
+  return `${s ? s.hits : 0} of ${st.needed} workouts until rep increase`;
+}
+
+// Notes box under the exercise name: type straight in, it saves by itself.
+function notesBox(ex) {
+  const t = h('textarea', { class: 'ex-notes-box', rows: '2', placeholder: 'Setup, form cues, machine settings…', 'aria-label': `Notes for ${ex.name}` });
+  t.value = ex.notes || '';
+  let timer;
+  const save = () => { clearTimeout(timer); if (t.value.trim() !== (ex.notes || '')) data.updateExercise(ex, { notes: t.value.trim() }); };
+  t.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(save, 600); });
+  t.addEventListener('blur', save);
+  return h('label', { class: 'ex-notes-field' }, h('span', { class: 'sub' }, 'Notes'), t);
 }
 
 function exerciseCard(ex, dayType, today) {
@@ -68,6 +77,18 @@ function exerciseCard(ex, dayType, today) {
     return data.updateSet(id, patch);
   };
 
+  // Each set's rep goal is its own box; changing it sets the goal from today on.
+  const goalBox = (i) => {
+    const g = numberInput(st.sets[i] ? st.sets[i].goal : st.start, { 'aria-label': `Set ${i + 1} rep goal`, inputmode: 'numeric', step: '1', min: '1', class: 'goal-in' });
+    g.classList.add('goal-in');
+    g.addEventListener('change', () => {
+      const v = Math.round(+g.value);
+      if (!(v > 0)) { g.value = st.sets[i] ? st.sets[i].goal : st.start; return; }
+      data.updateExercise(ex, { goals: { ...(ex.goals || {}), [i]: { goal: v, date: today } } });
+    });
+    return g;
+  };
+
   const rowEl = (row, i) => {
     let inputs, values, ready;
     if (cardio) {
@@ -80,7 +101,7 @@ function exerciseCard(ex, dayType, today) {
       const w = numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
       const r = numberInput(row.repsR, { 'aria-label': `Set ${row.n} right reps`, placeholder: 'R', inputmode: 'numeric', step: '1' });
       const l = numberInput(row.repsL, { 'aria-label': `Set ${row.n} left reps`, placeholder: 'L', inputmode: 'numeric', step: '1' });
-      inputs = [w, r, l];
+      inputs = [w, r, l, goalBox(i)];
       values = () => {
         const R = num(r.value), L = num(l.value);
         return { weight: num(w.value), repsR: R, repsL: L, reps: R != null && L != null ? Math.min(R, L) : null };
@@ -89,11 +110,11 @@ function exerciseCard(ex, dayType, today) {
     } else {
       const w = numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
       const r = numberInput(row.reps, { 'aria-label': `Set ${row.n} reps`, placeholder: 'reps', inputmode: 'numeric', step: '1' });
-      inputs = [w, r];
+      inputs = [w, r, goalBox(i)];
       values = () => ({ weight: num(w.value), reps: num(r.value) });
       ready = (v) => v.reps > 0 || 'Enter reps first';
     }
-    for (const el of inputs) el.addEventListener('change', () => commit(row, values()));
+    for (const el of inputs) if (!el.classList.contains('goal-in')) el.addEventListener('change', () => commit(row, values()));
     const toggle = async () => {
       const v = values();
       if (row.done) { await commit(row, { ...v, done: false, doneAt: null }); return; }
@@ -112,7 +133,7 @@ function exerciseCard(ex, dayType, today) {
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: 'set-wrap' },
-      h('div', { class: `set-row${sides ? ' sides' : ''}${row.done ? ' done' : ''}` },
+      h('div', { class: `set-row${sides ? ' sides' : cardio ? '' : ' g3'}${row.done ? ' done' : ''}` },
         light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
       cardio ? null : h('div', { class: 'set-meta' }, setMeta(ex, st, i)));
   };
@@ -125,15 +146,15 @@ function exerciseCard(ex, dayType, today) {
     await data.addSet(ex.id, today, dayType, vals);
   };
 
-  const heads = cardio ? ['Minutes', 'Miles'] : sides ? ['Weight (lb)', 'Right', 'Left'] : ['Weight (lb)', 'Reps'];
+  const heads = cardio ? ['Minutes', 'Miles'] : sides ? ['Weight (lb)', 'Right', 'Left', 'Goal'] : ['Weight (lb)', 'Reps', 'Goal'];
   return card(
     h('div', { class: 'row' },
       h('h2', { class: 'card-title grow' }, ex.name),
       h('button', { type: 'button', class: 'btn ghost', 'aria-label': `Edit ${ex.name}`, onClick: () => exerciseMenu(ex, dayType) }, 'Edit')),
-    ex.notes ? h('p', { class: 'ex-notes' }, ex.notes) : null,
-    h('div', { class: 'chips' }, infoLine(ex, st)),
+    notesBox(ex),
+    lastWorkout(ex, st),
     !cardio && st.ready ? h('div', { class: 'banner' }, `Every set hit ${st.top} reps ${st.needed} sessions in a row. Go up in weight; goals reset to ${st.start}.`) : null,
-    h('div', { class: `set-row head${sides ? ' sides' : ''}`, 'aria-hidden': 'true' }, h('span'), heads.map((t) => h('span', null, t)), h('span')),
+    h('div', { class: `set-row head${sides ? ' sides' : cardio ? '' : ' g3'}`, 'aria-hidden': 'true' }, h('span'), heads.map((t) => h('span', null, t)), h('span')),
     rows.map(rowEl),
     button('+ Add set', addSet, 'block'));
 }
@@ -234,8 +255,9 @@ function dayBlocks(exs, dayType, today, root) {
       if (options.length === 1) { root.append(exerciseCard(options[0], dayType, today)); continue; }
       const pick = data.varPick(key, today);
       const chosen = options.find((e) => e.variant.n === pick) || options[0];
+      const recent = options.map((e) => ({ e, d: data.lastDone(e.id, today) })).filter((x) => x.d).sort((a, b) => (a.d < b.d ? 1 : -1))[0];
       root.append(h('div', { class: 'stack tight var-pick' },
-        h('div', { class: 'sub' }, 'This week\'s variation'),
+        h('div', { class: 'sub' }, recent ? `Most recent variation: ${recent.e.variant.n}` : 'No variation done yet'),
         segmented(options.map((e) => [e.variant.n, `Var ${e.variant.n}: ${e.name}`]), chosen.variant.n, (n) => data.setVarPick(key, today, n))));
       root.append(exerciseCard(chosen, dayType, today));
     }

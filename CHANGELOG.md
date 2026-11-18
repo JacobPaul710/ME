@@ -3,6 +3,19 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.34.0 (ME patch 13)
+- 3.34.0 Tap the combat level card on Today and it flips over to show what's done and what's still needed.
+- 3.33.0 Frequently used has its own button next to Scan barcode and Add item.
+- 3.32.1 The food search clears after Add or Save to Frequently used.
+- 3.32.0 Units that fit the food: pieces (nuggets, wings, slices…), cups and fl oz for drinks, grams and oz; "1 serving" stays.
+- 3.31.0 Live food search: results narrow with every letter; online results load by themselves when you pause typing.
+- 3.30.0 "Most recent variation: N" above the variation picker.
+- 3.29.3 Under each set: "N of 4 workouts until rep increase".
+- 3.29.2 Rep range and last session's numbers removed from the exercise card (still in History).
+- 3.29.1 "Last workout: Mon, Nov 16" on its own highlighted line.
+- 3.29.0 Each set's rep goal is its own box you can change.
+- 3.28.0 Notes box under each exercise name; type straight in, saves by itself.
+
 ## 3.27.3 (ME patch 12)
 - 3.27.3 Flames change colour a little slower (15-second loop).
 - 3.27.2 Rest time between sets moved to Settings.

@@ -126,6 +126,8 @@ export function exerciseStatus(ex, today) {
   return { ...ev, last, lastWorking: last ? working(last) : null };
 }
 export const updateExercise = (ex, patch) => store.update(ex.id, patch);
+// Latest day (up to `upTo`) with a finished set of this exercise, or null.
+export const lastDone = (exId, upTo) => setsFor(exId).filter((s) => s.done && s.date <= upTo).reduce((a, s) => (!a || s.date > a ? s.date : a), null);
 
 // ---- variations: alternate week to week, you pick which one this week ----
 const weekKey = (date) => { const d = parse(date); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
@@ -233,7 +235,7 @@ export const mealOf = (log) => log.meal || mealNow(new Date(log.at || Date.now()
 export async function updateLog(log, { amount, meal }) {
   const k = log.amount ? amount / log.amount : 1;
   const r1 = (n) => Math.round(n * 10) / 10;
-  const label = log.unit === 'g' ? `${amount} g` : log.amountLabel.replace(/^[\d.]+/, String(amount));
+  const label = log.amountLabel.replace(/^[\d.]+/, String(amount));
   return store.update(log.id, { amount, meal, amountLabel: label, cal: Math.round(log.cal * k), p: r1(log.p * k), c: r1(log.c * k), f: r1(log.f * k) });
 }
 

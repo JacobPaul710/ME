@@ -50,8 +50,19 @@ export function evaluateSets(ex, sess, needed = 4) {
     hits: b.hits || 0, change: b.change ?? null,
   }));
   let lastDate = base ? base.date : null;
+  // Goals you typed in yourself (ex.goals = { setIndex: { goal, date } }) take over from that date.
+  const pending = Object.entries(ex.goals || {}).map(([i, g]) => ({ i: +i, ...g })).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const applyGoals = (upTo) => {
+    while (pending.length && (upTo == null || pending[0].date <= upTo)) {
+      const g = pending.shift();
+      if (!sets[g.i]) sets[g.i] = { weight: null, reps: null, goal: start, hits: 0, change: null };
+      sets[g.i].goal = Math.max(1, Math.round(+g.goal || start));
+      sets[g.i].hits = 0;
+    }
+  };
   for (const s of sess) {
     if (base && s.date <= base.date) continue;
+    applyGoals(s.date);
     s.sets.filter((x) => effectiveReps(x) > 0).forEach((x, i) => {
       if (!sets[i]) sets[i] = { weight: null, reps: null, goal: start, hits: 0, change: null };
       const st = sets[i];
@@ -71,6 +82,7 @@ export function evaluateSets(ex, sess, needed = 4) {
     });
     lastDate = s.date;
   }
+  applyGoals(null);
   const ready = sets.length > 0 && sets.every((s) => s.goal >= top && s.hits >= needed);
   return { sets, ready, lastDate, needed, start, top };
 }

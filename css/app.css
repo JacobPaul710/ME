@@ -15,7 +15,9 @@ button, input, select { font-family: inherit; }
 .row { display: flex; align-items: center; gap: 12px; }
 .grow { flex: 1; min-width: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.grid3 .btn { padding: 0 6px; font-size: 14px; line-height: 1.15; white-space: normal; min-height: 48px; }
+.search-status { margin: 4px 2px; }
 .center { text-align: center; }
 
 /* type */
@@ -285,7 +287,13 @@ html[data-theme] .level-title { font-family: Cinzel, "Trajan Pro", Georgia, seri
 .ex-notes { margin: 0; font-size: 14px; color: var(--muted); font-style: italic; }
 .set-wrap { display: flex; flex-direction: column; gap: 2px; }
 .set-meta { font-size: 12px; color: var(--muted); padding-left: 52px; }
-.set-row.sides { grid-template-columns: 44px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) 44px; }
+.set-row.g3 { grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 6px; }
+.set-row.sides { grid-template-columns: 44px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 5px; }
+.goal-in { background: var(--goal-bg, rgba(255, 210, 63, 0.12)); }
+.ex-notes-field { display: flex; flex-direction: column; gap: 3px; }
+.ex-notes-box { width: 100%; min-height: 44px; resize: vertical; font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--input-bg, var(--bg)); color: var(--text); }
+.last-workout { font-size: 14px; padding: 7px 10px; border-left: 3px solid var(--accent); background: rgba(0, 0, 0, 0.04); border-radius: 0 8px 8px 0; color: var(--muted); }
+.last-workout .lw-label { font-weight: 700; color: var(--text); }
 .rest-pick { font-size: 15px; }
 .rest-pick select { width: auto; min-width: 96px; }
 .var-pick .seg button { font-size: 13px; }
@@ -398,3 +406,15 @@ body.resting .toast { bottom: calc(env(safe-area-inset-bottom) + 136px); }
 .skill-how { font-size: 10px; line-height: 1.2; color: #cbbfa8; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 button.card.level { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .combat-done .tick { color: var(--good, #3f8a3a); font-weight: 800; font-size: 18px; width: 28px; text-align: center; }
+
+/* Combat card flips over (Today) */
+.flip-box { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; perspective: 900px; -webkit-tap-highlight-color: transparent; }
+.flip-box > .card { transition: transform 0.17s ease-in; }
+.flip-box.flip-out > .card { transform: rotateY(90deg); }
+.flip-box.flip-in > .card { animation: flip-in 0.19s ease-out; }
+@keyframes flip-in { from { transform: rotateY(-90deg); } to { transform: none; } }
+.level-back .level-body { position: relative; }
+.level-back .back-head { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; margin-top: 4px; }
+.level-back .back-line { font-size: 15px; font-weight: 600; }
+.level-back .back-line.done { color: var(--good, #3f8a3a); }
+.level-back .back-hint { font-size: 12px; opacity: 0.7; margin-top: 4px; }

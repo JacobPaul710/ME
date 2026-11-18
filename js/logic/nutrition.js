@@ -16,19 +16,40 @@ export function totals(logs) {
 
 // A food's numbers are per "base": either baseGrams of it (e.g. 100 g),
 // or one serving when baseGrams is null (custom items).
+// Units that fit the food: its serving, pieces when the serving is a count (6 nuggets),
+// cups and fl oz for drinks, and grams / oz for anything weighed.
+const LIQUID = /\b(milk|juice|soda|cola|pop|water|coffee|latte|tea|shake|smoothie|drink|beverage|broth|kefir|lemonade|sports drink|energy drink)\b/i;
+const PIECES = /(\d+(?:\.\d+)?)\s*(pieces?|pcs?|nuggets?|cookies?|wings?|strips?|slices?|crackers?|chips?|tenders?|eggs?|links?|patties|patty|bars?|balls?|rolls?|pancakes?|waffles?|tacos?|burgers?|sandwich(?:es)?)/i;
+
 export function units(food) {
   const u = [];
   if (!food.baseGrams) u.push({ id: 'serving', label: food.baseLabel || 'serving' });
   else if (food.servingGrams) u.push({ id: 'serving', label: food.servingLabel || 'serving' });
-  if (food.baseGrams) u.push({ id: 'g', label: 'grams' });
+  if (food.baseGrams && food.servingGrams && food.servingLabel) {
+    const m = String(food.servingLabel).match(PIECES);
+    if (m && +m[1] > 1) {
+      const word = m[2].toLowerCase().replace(/ies$/, 'y').replace(/(ches|shes)$/, (x) => x.slice(0, -2)).replace(/s$/, '');
+      u.push({ id: 'piece', label: `${word || 'piece'} (${Math.round(food.servingGrams / +m[1])} g each)`, grams: food.servingGrams / +m[1] });
+    }
+  }
+  if (food.baseGrams) {
+    if (LIQUID.test(food.name) || /\b(ml|fl|cup)/i.test(food.servingLabel || '')) {
+      u.push({ id: 'cup', label: 'cups', grams: 240 }, { id: 'floz', label: 'fl oz', grams: 29.57 });
+    }
+    u.push({ id: 'g', label: 'grams' }, { id: 'oz', label: 'oz', grams: 28.35 });
+  }
   return u;
 }
+
+const unitGrams = (food, unit) => (units(food).find((u) => u.id === unit) || {}).grams;
 
 export function factor(food, amount, unit) {
   const a = +amount || 0;
   if (unit === 'g') return food.baseGrams ? a / food.baseGrams : 0;
   if (!food.baseGrams) return a;
-  return food.servingGrams ? (a * food.servingGrams) / food.baseGrams : 0;
+  if (unit === 'serving') return food.servingGrams ? (a * food.servingGrams) / food.baseGrams : 0;
+  const g = unitGrams(food, unit);
+  return g ? (a * g) / food.baseGrams : 0;
 }
 
 export function macrosFor(food, amount, unit) {
@@ -45,6 +66,10 @@ export function defaultAmount(food) {
 
 export function amountLabel(food, amount, unit) {
   if (unit === 'g') return `${amount} g`;
+  if (unit === 'oz') return `${amount} oz`;
+  if (unit === 'cup') return `${amount} cup${+amount === 1 ? '' : 's'}`;
+  if (unit === 'floz') return `${amount} fl oz`;
+  if (unit === 'piece') { const u = units(food).find((x) => x.id === 'piece'); return `${amount} × ${u ? u.label.replace(/ \(.*/, '') : 'piece'}`; }
   const lbl = food.baseGrams ? food.servingLabel || 'serving' : food.baseLabel || 'serving';
   return `${amount} × ${lbl}`;
 }

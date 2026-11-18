@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.27.3)
+## Built (version 3.34.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -61,9 +61,17 @@
 
 - Preview every sound, pop-up and gear tier from Settings
 
+**Workout card**
+- Notes box under the name (saves as you type), "Last workout: day, date", Weight / Reps / Goal boxes per set,
+  "N of 4 workouts until rep increase", "Most recent variation: N"
+
+**Food search**
+- Live search that narrows as you type; natural units (pieces, cups, fl oz, grams, oz); clears after adding;
+  Frequently used button
+
 **Character**
 - Combat level (3–126) from your skills, RuneScape formula: ¼ × (Defence + Hitpoints + ½ Discipline) + 0.325 × (Attack + Strength)
-- Tap the combat card: skill levels gained since your last combat level, and what's still needed for the next one
+- Tap the combat card on Today: it flips to show skill levels gained since your last combat level, and what's still needed
 - 10 skills, 1–99, RuneScape XP table: Attack (Pull reps), Strength (Push reps), Defence (Back reps), Hitpoints (all four days),
   Agility (Legs reps), Discipline (streak days), Cooking (days at protein target), Stamina (sets), Mastery (weight increases),
   Herblore (supplements taken)
@@ -84,3 +92,10 @@
 ## Icebox (later)
 - Bluetooth food scale
 - Cardio XP
+
+**Parked for later (chosen, not built)**
+- Character or monster choice in Settings; monster evolves at combat 3, 25, 50, 80, 110 and 126
+- Monsters kept: Sandqueen, Emberwyrm, Mosslump, Gloomwing, Voidling, Antlerghast, Wraithling, Leechmaw (more horror designs wanted)
+- Knight idles: spin sword, swing sword, flex, polish shield, stab, steam from nostrils
+- Monster idles: breathe fire, stomp, roar head back, snap jaws, tail swish, swell up and flex
+- Supplements section changes and the Wendy's Baconator photo data issue (to discuss)

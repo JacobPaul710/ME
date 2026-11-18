@@ -2,13 +2,19 @@ import { h, fmt } from './dom.js';
 import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light } from './components.js';
 import { nice } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
-import { search } from '../logic/foods.js';
+import { search, norm } from '../logic/foods.js';
 import { usdaFoods, searchOnline, lookupBarcode } from '../core/foodapi.js';
 import { startScan } from '../core/scanner.js';
 import * as data from '../data.js';
 
 // Screen state kept between redraws.
-const state = { meal: data.mealNow(), tab: 'search', q: '', online: [], onlineFor: '', onlineBusy: false, onlineError: '' };
+const state = { meal: data.mealNow(), q: '', onlineBusy: false, onlineError: '' };
+const onlineCache = new Map(); // search words -> online results, so typing more narrows instantly
+const clearSearch = () => {
+  state.q = ''; state.onlineError = '';
+  const box = document.querySelector('#add-food input[type="search"]');
+  if (box && box.value) { box.value = ''; box.dispatchEvent(new Event('input')); }
+};
 
 const mealName = (id) => (data.MEALS.find((m) => m[0] === id) || [, 'Snacks'])[1];
 const mealSelect = (value) => h('select', null, data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label)));
@@ -38,12 +44,13 @@ export function foodSheet(food, today) {
 
   const saveBtn = saved
     ? button('Remove from Frequently used', async () => { await data.unsaveFood(saved.id); s.close(); toast('Removed'); }, 'danger block')
-    : button('Save to Frequently used', async () => { await data.saveFood(food); s.close(); toast('Saved to Frequently used'); }, 'block');
+    : button('Save to Frequently used', async () => { clearSearch(); await data.saveFood(food); s.close(); toast('Saved to Frequently used'); }, 'block');
 
   const s = sheet(base.name, body, [
     button('Add', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
       state.meal = mealSel.value;
+      clearSearch();
       await data.logFood(today, base, +amount.value, unitSel.value, mealSel.value);
       s.close();
       toast(`Added to ${mealName(mealSel.value)}`);
@@ -112,41 +119,63 @@ function foodRow(food, today, quickAdd) {
       h('span', { class: 'item-name' }, food.name),
       h('span', { class: 'sub' }, [food.brand, sourceLabel[food.source], `${fmt(m.cal)} cal`].filter(Boolean).join(' · '))),
     quickAdd ? h('button', { type: 'button', class: 'btn add-btn', 'aria-label': `Add ${food.name}`, onClick: async () => {
+      clearSearch();
       await data.logFood(today, food, d.amount, d.unit, state.meal);
       toast(`Added ${food.name} to ${mealName(state.meal)}`);
     } }, '+ Add') : null);
 }
 
+// Live search: results narrow with every letter. Foods on the phone show right away;
+// online results load when you pause typing, and typing more filters what's already loaded.
 function searchPanel(today) {
-  const input = h('input', { type: 'search', value: state.q, placeholder: 'Search foods', 'aria-label': 'Search foods', enterkeyhint: 'search' });
+  const input = h('input', { type: 'search', value: state.q, placeholder: 'Search foods (e.g. Wendy\'s nuggets)', 'aria-label': 'Search foods', enterkeyhint: 'search', autocomplete: 'off' });
   const results = h('div', { class: 'list' });
+  let timer = null;
+  const key = (q) => norm(q);
+  // best online results for q: exact cache, else the longest cached shorter search, filtered down
+  const onlineFor = (q) => {
+    const k = key(q);
+    if (onlineCache.has(k)) return { list: search(q, onlineCache.get(k), 40), exact: true };
+    let best = null;
+    for (const c of onlineCache.keys()) if (k.startsWith(c) && (!best || c.length > best.length)) best = c;
+    return best ? { list: search(q, onlineCache.get(best), 40), exact: false } : { list: [], exact: false };
+  };
   const draw = async () => {
     const q = state.q.trim();
-    if (!q) { results.replaceChildren(h('h3', { class: 'list-head' }, 'Frequently used'), savedPanel(today)); return; }
-    const local = search(q, [...data.savedFoods(), ...(await usdaFoods())], 25);
+    if (!q) { results.replaceChildren(); return; }
+    const local = search(q, [...data.savedFoods(), ...(await usdaFoods())], 15);
     if (q !== state.q.trim()) return; // typed again meanwhile
-    const kids = local.map((f) => foodRow(f, today, false));
-    if (!local.length) kids.push(empty('No match on the phone.'));
-    if (state.onlineFor === q && state.online.length) {
-      kids.push(h('h3', { class: 'list-head' }, 'Online results'), state.online.map((f) => foodRow(f, today, false)));
-    } else if (state.onlineFor === q && !state.onlineBusy) {
-      kids.push(empty(state.onlineError || 'Nothing found online.'));
-    }
-    kids.push(button(state.onlineBusy ? 'Searching…' : `Search online for “${q}”`, goOnline, 'block', { disabled: state.onlineBusy }));
-    results.replaceChildren(...kids.flat());
+    const on = onlineFor(q);
+    const seen = new Set(local.map((f) => norm(`${f.name} ${f.brand || ''}`)));
+    const online = on.list.filter((f) => !seen.has(norm(`${f.name} ${f.brand || ''}`)));
+    const kids = [...local.map((f) => foodRow(f, today, false)), ...online.map((f) => foodRow(f, today, false))];
+    if (state.onlineBusy) kids.push(h('p', { class: 'sub search-status' }, 'Searching online…'));
+    else if (!kids.length) kids.push(empty(state.onlineError || (navigator.onLine ? 'No matches yet. Keep typing or try other words.' : "No match on the phone, and you're offline.")));
+    results.replaceChildren(...kids);
   };
   const goOnline = async () => {
     const q = state.q.trim();
-    if (!q) return;
-    if (!navigator.onLine) { toast("You're offline. Online search needs signal."); return; }
+    if (q.length < 2 || !navigator.onLine) return;
+    const k = key(q);
+    if (onlineCache.has(k)) return;
+    const on = onlineFor(q);
+    if (on.list.length >= 8) return; // a shorter search already covers this; no need to ask again
     state.onlineBusy = true; state.onlineError = ''; draw();
-    try { state.online = await searchOnline(q); } catch (e) { state.online = []; state.onlineError = e.message; }
-    state.onlineFor = q; state.onlineBusy = false; draw();
+    try { onlineCache.set(k, await searchOnline(q)); } catch (e) { state.onlineError = e.message; }
+    state.onlineBusy = false;
+    if (key(state.q.trim()).startsWith(k) || k.startsWith(key(state.q.trim()))) draw();
   };
-  input.addEventListener('input', () => { state.q = input.value; draw(); });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { input.blur(); goOnline(); } });
+  input.addEventListener('input', () => {
+    state.q = input.value; draw();
+    clearTimeout(timer); timer = setTimeout(goOnline, 450);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { input.blur(); clearTimeout(timer); goOnline(); } });
   draw();
   return h('div', { class: 'stack' }, input, results);
+}
+
+function frequentSheet(today) {
+  sheet('Frequently used', savedPanel(today));
 }
 
 function savedPanel(today) {
@@ -163,7 +192,7 @@ function editLogSheet(log) {
   const mealSel = mealSelect(data.mealOf(log));
   const s = sheet(log.name, h('div', { class: 'stack' },
     h('div', { class: 'sub' }, `${log.amountLabel} · ${fmt(log.cal)} cal · ${pcf(log)}`),
-    h('div', { class: 'grid2' }, field(`Amount (${log.unit === 'g' ? 'grams' : 'servings'})`, amount), field('Meal', mealSel))), [
+    h('div', { class: 'grid2' }, field(`Amount (${log.amountLabel.replace(/^[\d.]+\s*(× )?/, '')})`, amount), field('Meal', mealSel))), [
     button('Save', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
       await data.updateLog(log, { amount: +amount.value, meal: mealSel.value });
@@ -253,7 +282,7 @@ export function renderFood(root, ctx) {
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
     h('h2', { class: 'card-title' }, 'Add food'),
     h('div', { class: 'field' }, h('span', null, 'Adding to'), segmented(data.MEALS, state.meal, (v) => { state.meal = v; ctx.rerender(); })),
-    h('div', { class: 'grid2' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today))),
+    h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today)), button('Frequently used', () => frequentSheet(today))),
     searchPanel(today));
   root.append(...[
     header('Food', nice(today)),

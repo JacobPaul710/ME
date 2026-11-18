@@ -111,7 +111,7 @@ const SWORDS = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stro
 export function levelCardView(C, theme, onTap) {
   const pct = Math.max(0, Math.min(100, (C.exact - C.combat) * 100));
   const max = C.combat >= COMBAT_MAX;
-  return h(onTap ? 'button' : 'section', { ...(onTap ? { type: 'button', onClick: onTap } : {}), class: `card level theme-${theme}`, 'aria-label': `Combat level ${C.combat}${onTap ? '. Tap to see what\'s needed for the next level' : ''}` },
+  return h(onTap ? 'button' : 'section', { ...(onTap ? { type: 'button', onClick: onTap } : {}), class: `card level theme-${theme}`, 'aria-label': `Combat level ${C.combat}${onTap ? '. Tap to flip and see what\'s needed for the next level' : ''}` },
     themeBackground(theme),
     h('div', { class: 'row level-body' },
       h('div', { class: 'level-badge' }, svg(SWORDS), h('span', { class: 'level-num' }, String(C.combat))),
@@ -119,7 +119,23 @@ export function levelCardView(C, theme, onTap) {
         h('div', { class: 'level-title' }, 'Combat level'),
         h('div', { class: 'bar xp' }, h('i', { style: `width:${max ? 100 : pct}%` })),
         h('div', { class: 'row prog-top level-xp' }, h('span', { class: 'grow' }, max ? 'Maxed' : `Next: combat level ${C.combat + 1}`),
-          onTap && !max ? h('span', null, 'Tap for details') : null))));
+          onTap && !max ? h('span', null, 'Tap to flip') : null))));
+}
+
+// Back of the combat card: what's done toward the next level and what's still needed.
+function combatBack(C, theme) {
+  const max = C.combat >= COMBAT_MAX;
+  return h('div', { class: `card level level-back theme-${theme}` }, themeBackground(theme),
+    h('div', { class: 'stack tight level-body' },
+      h('div', { class: 'level-title' }, max ? `Combat level ${C.combat}: maxed` : `Toward combat level ${C.combat + 1}`),
+      max ? null : [
+        h('div', { class: 'back-head' }, 'Done'),
+        C.done.length ? C.done.map((d) => h('div', { class: 'back-line done' }, `✓ ${d.name} +${d.gained} level${d.gained === 1 ? '' : 's'}`))
+          : h('div', { class: 'back-line' }, 'Nothing yet since your last combat level'),
+        h('div', { class: 'back-head' }, 'Still needed (any one)'),
+        C.needs.map((n) => h('div', { class: 'back-line' }, `${n.levels} more ${n.names} level${n.levels === 1 ? '' : 's'}`)),
+      ],
+      h('div', { class: 'back-hint' }, 'Tap to flip back')));
 }
 
 export function combatSheet(today) {
@@ -140,8 +156,24 @@ export function combatSheet(today) {
     ]));
 }
 
+let combatFlipped = false; // stays flipped across redraws until you tap again
 export function levelCard(today) {
-  return levelCardView(data.skillInfo(today), data.settings().levelTheme, () => combatSheet(today));
+  const theme = data.settings().levelTheme;
+  const box = h('button', { type: 'button', class: 'flip-box', 'aria-pressed': combatFlipped ? 'true' : 'false' });
+  const draw = () => {
+    const C = combatFlipped ? data.combatInfo(today) : data.skillInfo(today);
+    const face = combatFlipped ? combatBack(C, theme) : levelCardView(C, theme, null);
+    box.setAttribute('aria-label', combatFlipped ? `Combat level ${C.combat} details. Tap to flip back` : `Combat level ${C.combat}. Tap to flip and see what's needed for the next level`);
+    box.setAttribute('aria-pressed', combatFlipped ? 'true' : 'false');
+    box.replaceChildren(face);
+  };
+  box.addEventListener('click', () => {
+    box.classList.add('flip-out');
+    setTimeout(() => { combatFlipped = !combatFlipped; draw(); box.classList.remove('flip-out'); box.classList.add('flip-in'); }, 170);
+    setTimeout(() => box.classList.remove('flip-in'), 360);
+  });
+  draw();
+  return box;
 }
 
 // Gear tiers: real-life changes unlocked by consistent training.
