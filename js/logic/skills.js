@@ -22,6 +22,7 @@ export const SKILLS = [
   { id: 'cooking', name: 'Cooking', how: 'Days you hit your protein target', perWeek: 7, unit: 'days' },
   { id: 'stamina', name: 'Stamina', how: 'Sets completed', perWeek: 45, unit: 'sets' },
   { id: 'mastery', name: 'Mastery', how: 'Times you went up in weight on a lift', perWeek: 2, unit: 'weight-ups' },
+  { id: 'mining', name: 'Mining', how: 'Forearm reps (the optional 4th set earns 50% more)', perWeek: 950 },
   { id: 'herblore', name: 'Herblore', how: 'Supplements taken (check them off on the Food tab)', perWeek: 7, unit: 'full days' },
 ];
 
@@ -62,7 +63,7 @@ const repsOf = (s) => (s.repsR != null || s.repsL != null ? ((+s.repsR || 0) + (
 // Raw counts for each skill.
 export function skillCounts({ sets = [], exercises = [], streakDays = new Set(), proteinDays = 0, suppDays = 0 }) {
   const exById = new Map(exercises.map((e) => [e.id, e]));
-  const c = { attack: 0, strength: 0, defence: 0, agility: 0, hitpoints: 0, discipline: streakDays.size, cooking: proteinDays, stamina: 0, mastery: 0, herblore: suppDays };
+  const c = { attack: 0, strength: 0, defence: 0, agility: 0, hitpoints: 0, discipline: streakDays.size, cooking: proteinDays, stamina: 0, mastery: 0, mining: 0, herblore: suppDays };
   const done = sets.filter((s) => s.done);
   for (const s of done) {
     const ex = exById.get(s.exerciseId) || {};
@@ -70,7 +71,9 @@ export function skillCounts({ sets = [], exercises = [], streakDays = new Set(),
     const reps = repsOf(s);
     if (reps <= 0) continue;
     c.stamina++;
+    if (s.dayType === 'Forearms' && s.n === 4) c.stamina++; // the optional 4th forearm set: bonus XP
     const xp = reps * repXP(s.weight, ex.repTop);
+    if (s.dayType === 'Forearms') { c.mining += s.n === 4 ? xp * 1.5 : xp; continue; } // grip work
     const key = { Pull: 'attack', Push: 'strength', Back: 'defence', Legs: 'agility' }[s.dayType];
     if (key) { c[key] += xp; c.hitpoints += xp; }
   }

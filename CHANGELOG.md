@@ -3,6 +3,17 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.51.0 (ME patch 16)
+- 3.51.0 New skill: Mining, earned from forearm reps (the optional 4th set earns 50% more).
+- 3.50.0 An exercise closes itself once every set is done (tap it to open again).
+- 3.49.0 Forearms alternate: the curl you're due for is on top with an "Up next" tag and "Last: …"; "Rest today" for sore days.
+- 3.48.1 Forearms have no rest timer and no goal boxes.
+- 3.48.0 Forearms: the 4th set is optional and gives bonus XP; "Complete Back Curl / Front Curl" finishes without it.
+- 3.47.0 Forearms have their own card on the Workout tab every day and no longer count as a workout day (an off day can still have forearms).
+- 3.46.1 Dirty bulk gets 30% of calories from fat (cut and clean bulk stay at 25%).
+- 3.46.0 Goal weight in Settings: shows pounds a week (as a % of your weight), Light / Moderate / Aggressive against the research range for your goal, and about how many weeks to reach it.
+- 3.45.1 Swiping from the left edge only opens Settings; moving between screens no longer stacks up "back" pages.
+
 ## 3.45.0 (ME patch 15)
 - 3.45.0 Characters: your pick locks in and you can name it. "Start a new character" pauses the current one at its level (it shows you which one and its level); the new one starts at combat level 3 and only counts activity from that day. Switch back to a paused one any time. A heart floats up when you touch it; idles and tap animations last about twice as long, one every 4–6 seconds. Each monster and the knight has its own quiet backdrop. Tidefang removed (8 monsters).
 - 3.44.0 The USDA basic foods list is built into the app (by a GitHub Action), so it downloads once and works offline on every device.

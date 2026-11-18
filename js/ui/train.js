@@ -1,7 +1,7 @@
 import { h, fmt } from './dom.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
-import { nice, ago, iso, parse } from '../logic/dates.js';
+import { nice, ago, iso, parse, addDays } from '../logic/dates.js';
 import { LIFTS } from '../logic/standards.js';
 import * as data from '../data.js';
 import { cheer } from '../core/cheers.js';
@@ -92,7 +92,9 @@ function notesBlock(ex) {
     list);
 }
 
-function exerciseCard(ex, dayType, today) {
+const opened = new Set(); // finished exercises you tapped open again (this session)
+
+function exerciseCard(ex, dayType, today, { forearm = false, tag = null } = {}) {
   const st = data.exerciseStatus(ex, today);
   const cardio = ex.type === 'cardio';
   const sides = !!ex.sides && !cardio;
@@ -144,7 +146,7 @@ function exerciseCard(ex, dayType, today) {
       const w = numberInput(row.weight, { 'aria-label': `Set ${row.n} weight in pounds`, placeholder: 'lb' });
       const r = numberInput(row.repsR, { 'aria-label': `Set ${row.n} right reps`, placeholder: 'R', inputmode: 'numeric', step: '1' });
       const l = numberInput(row.repsL, { 'aria-label': `Set ${row.n} left reps`, placeholder: 'L', inputmode: 'numeric', step: '1' });
-      inputs = [w, r, l, goalBox(i)];
+      inputs = forearm ? [w, r, l] : [w, r, l, goalBox(i)];
       values = () => {
         const R = num(r.value), L = num(l.value);
         return { weight: num(w.value), repsR: R, repsL: L, reps: R != null && L != null ? Math.min(R, L) : null };
@@ -165,11 +167,11 @@ function exerciseCard(ex, dayType, today) {
       if (ok !== true) { toast(ok); return; }
       const before = data.skillInfo(iso());
       const goal = st.sets[i] ? st.sets[i].goal : st.start;
-      const hitGoal = !cardio && v.reps != null && v.reps >= goal;
+      const hitGoal = !cardio && !forearm && v.reps != null && v.reps >= goal;
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
-      startRest(data.settings().restSeconds || 90);
+      if (!forearm) startRest(data.settings().restSeconds || 90); // forearms don't rest
       // XP per skill for this set (like RuneScape's XP drops), plus any skill level-ups
       const after = data.skillInfo(iso());
       const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
@@ -181,9 +183,10 @@ function exerciseCard(ex, dayType, today) {
     };
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: 'set-wrap' },
-      h('div', { class: `set-row${sides ? ' sides' : cardio ? '' : ' g3'}${row.done ? ' done' : ''}` },
+      h('div', { class: `set-row${forearm ? ' g3' : sides ? ' sides' : cardio ? '' : ' g3'}${row.done ? ' done' : ''}` },
         light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
-      cardio ? null : h('div', { class: `set-meta${row.done && /Goal hit/.test(setMeta(ex, st, i, row)) ? ' hit' : ''}` }, setMeta(ex, st, i, row)));
+      forearm ? (row.n === 4 ? h('div', { class: 'set-meta optional' }, 'Optional set · bonus XP') : null)
+        : cardio ? null : h('div', { class: `set-meta${row.done && /Goal hit/.test(setMeta(ex, st, i, row)) ? ' hit' : ''}` }, setMeta(ex, st, i, row)));
   };
 
   const addSet = async () => {
@@ -194,8 +197,24 @@ function exerciseCard(ex, dayType, today) {
     await data.addSet(ex.id, today, dayType, vals);
   };
 
-  const heads = cardio ? ['Minutes', 'Miles'] : sides ? ['Weight (lb)', 'Right', 'Left', 'Goal'] : ['Weight (lb)', 'Reps', 'Goal'];
+  const heads = cardio ? ['Minutes', 'Miles'] : forearm ? ['Weight (lb)', 'Right', 'Left'] : sides ? ['Weight (lb)', 'Right', 'Left', 'Goal'] : ['Weight (lb)', 'Reps', 'Goal'];
+
+  // Finished: every set done (forearms: the 3 required sets plus the optional one, or "Complete").
+  const real = !isVirtual;
+  const required = forearm ? rows.filter((r) => r.n <= 3) : rows;
+  const reqDone = real && required.length > 0 && required.every((r) => r.done);
+  const finished = forearm ? reqDone && (rows.every((r) => r.done) || data.exComplete(ex.id, today)) : reqDone;
+  const key = `${ex.id}:${today}`;
+  if (finished && !opened.has(key)) {
+    const n = rows.filter((r) => r.done).length;
+    return h('button', { type: 'button', class: 'card ex-done', 'aria-label': `${ex.name} done. Tap to open`, onClick: () => { opened.add(key); document.dispatchEvent(new CustomEvent('me:rerender')); } },
+      h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'),
+      h('span', { class: 'grow' }, h('span', { class: 'item-name' }, ex.name), h('span', { class: 'sub block' }, `${n} set${n === 1 ? '' : 's'} done · tap to open`)));
+  }
+  const completeBtn = forearm && reqDone && !finished
+    ? button(`Complete ${ex.name}`, () => { opened.delete(key); data.setExComplete(ex.id, today, true); }, 'primary block') : null;
   return card(
+    tag ? h('div', { class: 'up-next' }, tag) : null,
     h('div', { class: 'row' },
       h('h2', { class: 'card-title grow' }, ex.name),
       h('button', { type: 'button', class: 'btn ghost', 'aria-label': `Edit ${ex.name}`, onClick: () => exerciseMenu(ex, dayType) }, 'Edit')),
@@ -204,7 +223,26 @@ function exerciseCard(ex, dayType, today) {
     !cardio && st.ready ? h('div', { class: 'banner' }, `Every set hit ${st.top} reps ${st.needed} sessions in a row. Go up in weight; goals reset to ${st.start}.`) : null,
     h('div', { class: `set-row head${sides ? ' sides' : cardio ? '' : ' g3'}`, 'aria-hidden': 'true' }, h('span'), heads.map((t) => h('span', null, t)), h('span')),
     rows.map(rowEl),
-    button('+ Add set', addSet, 'block'));
+    completeBtn,
+    forearm ? null : button('+ Add set', addSet, 'block'),
+    finished ? button('Close', () => { opened.delete(key); document.dispatchEvent(new CustomEvent('me:rerender')); }, 'ghost block') : null);
+}
+
+// Forearms: their own card every day (workout day or not). Back curl and front curl
+// alternate; the one you're due for is on top. They never count as the day's workout.
+function forearmsCard(today) {
+  const exs = data.exercisesFor('Forearms');
+  if (!exs.length) return null;
+  const resting = data.forearmRest(today);
+  const last = exs.map((e) => ({ e, d: data.lastDone(e.id, addDays(today, -1)) })).filter((x) => x.d).sort((a, b) => (a.d < b.d ? 1 : -1))[0];
+  const ordered = last && exs.length > 1 ? [...exs.filter((e) => e.id !== last.e.id), last.e] : exs;
+  const wrap = h('section', { class: 'stack forearms', 'aria-label': 'Forearms' },
+    h('div', { class: 'row' }, h('h2', { class: 'group-head grow', style: 'margin:0' }, 'Forearms'),
+      button(resting ? 'Undo rest' : 'Rest today', () => data.setForearmRest(today, !resting), 'ghost')),
+    h('p', { class: 'sub', style: 'margin:0' }, last ? `Last: ${last.e.name}, ${dayDate(last.d)}` : 'Alternate back curl and front curl.'));
+  if (resting) { wrap.append(h('div', { class: 'card ex-done static' }, h('span', { class: 'tick' }, '✓'), h('span', null, 'Resting forearms today'))); return wrap; }
+  ordered.forEach((e, i) => wrap.append(exerciseCard(e, 'Forearms', today, { forearm: true, tag: i === 0 && last ? 'Up next' : null })));
+  return wrap;
 }
 
 // Shake the whole screen like an earthquake when a set is completed.
@@ -321,7 +359,8 @@ export function renderTrain(root, ctx) {
     root.append(header('Workout', nice(today)),
       card(h('h2', { class: 'card-title' }, past ? 'Pick the workout for this day' : "Pick today's workout"),
         h('div', { class: 'stack' }, data.DAY_TYPES.map((d) => button(d.later ? `${d.id} (coming later)` : d.id,
-          () => data.setCheckin(today, 'exercise', d.id), d.later ? 'block' : 'primary block', { disabled: d.later })))));
+          () => data.setCheckin(today, 'exercise', d.id), d.later ? 'block' : 'primary block', { disabled: d.later })))),
+      forearmsCard(today) || h('span'));
     return;
   }
   const last = data.lastDayOfType(dayType, today);
@@ -331,4 +370,6 @@ export function renderTrain(root, ctx) {
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
+  const fa = forearmsCard(today);
+  if (fa) root.append(fa);
 }

@@ -147,6 +147,7 @@ export const ICONS = {
   cooking: I('<path d="M3 10 H21 V14 Q21 20 15 20 H9 Q3 20 3 14 Z" fill="#50555b" stroke="#1d140c" stroke-width="1.2"/><path d="M1 11 H3 M21 11 H23" stroke="#1d140c" stroke-width="2"/><path d="M8 8 Q7 5.5 9 4 M12 8 Q11 5 13 3 M16 8 Q15 5.5 17 4" stroke="#d6dde3" stroke-width="1.4" fill="none" stroke-linecap="round"/>'),
   stamina: I('<path d="M14 2 L5 13 H11 L9 22 L19 10 H13 Z" fill="#ffd23f" stroke="#1d140c" stroke-width="1.2" stroke-linejoin="round"/>'),
   mastery: I('<path d="M4 9 H18 Q21 9 21 11 H17 L15 14 H9 L7 11 H4 Z" fill="#7a8087" stroke="#1d140c" stroke-width="1.1"/><path d="M9 14 H15 L16 18 H8 Z" fill="#50555b" stroke="#1d140c" stroke-width="1.1"/><rect x="6" y="18" width="12" height="3" fill="#7a8087" stroke="#1d140c" stroke-width="1.1"/><path d="M13 2 L16 6 M16 2 L13 6" stroke="#ffbf1a" stroke-width="1.4"/>'),
+  mining: I('<path d="M3 8 Q12 1 21 8 Q12 5 3 8 Z" fill="#a3a9b0" stroke="#1d140c" stroke-width="1.1"/><path d="M12 5 L12 22" stroke="#7a4a22" stroke-width="2.6" stroke-linecap="round"/><path d="M12 5 L12 22" stroke="#1d140c" stroke-width="0.6" stroke-dasharray="2 3"/><circle cx="18.5" cy="19" r="2.5" fill="#7a8087" stroke="#1d140c" stroke-width="1"/>'),
   herblore: I('<path d="M9 2 H15 V4 H14 V9 L19 17 Q20.5 21 16.5 21 H7.5 Q3.5 21 5 17 L10 9 V4 H9 Z" fill="#d6eef2" stroke="#1d140c" stroke-width="1.1"/><path d="M7.5 15 H16.5 L18 17.5 Q19 20 16 20 H8 Q5 20 6 17.5 Z" fill="#3fbf5a"/><circle cx="10" cy="17" r="0.9" fill="#b7f5c4"/>'),
 };
 

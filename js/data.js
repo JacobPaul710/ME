@@ -15,7 +15,7 @@ import { LIFTS, guessLift, bestOneRepMax, levelOf } from './logic/standards.js';
 import { addDays, parse, iso } from './logic/dates.js';
 
 export const DAY_TYPES = [
-  { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Back' }, { id: 'Forearms' },
+  { id: 'Push' }, { id: 'Pull' }, { id: 'Legs' }, { id: 'Back' },
 ];
 
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -45,7 +45,7 @@ export function dayStatus(date, today) {
   if (date > today) return { kind: 'future' };
   const c = checkin(date);
   if (c && (c.type === 'rest' || c.type === 'off')) return { kind: c.type };
-  const done = allSets().filter((s) => s.date === date && s.done);
+  const done = allSets().filter((s) => s.date === date && s.done && s.dayType !== 'Forearms');
   if (done.length) return { kind: 'workout', dayType: (c && c.dayType) || done[0].dayType };
   return { kind: date === today ? 'today' : 'missed' };
 }
@@ -117,6 +117,11 @@ export function addSet(exId, date, dayType, values) {
 }
 export const updateSet = (id, patch) => store.update(id, patch);
 export const removeSet = (id) => store.remove(id);
+// Forearms: finished early (without the optional 4th set), or rested for the day.
+export const exComplete = (exId, date) => !!store.get(`excomplete:${exId}:${date}`);
+export const setExComplete = (exId, date, on) => (on ? store.put('excomplete', `excomplete:${exId}:${date}`, { exId, date }) : store.remove(`excomplete:${exId}:${date}`));
+export const forearmRest = (date) => !!store.get('farest:' + date);
+export const setForearmRest = (date, on) => (on ? store.put('farest', 'farest:' + date, { date }) : store.remove('farest:' + date));
 // Everything logged for a day's workout and check-in (food and weigh-in are kept).
 export const daySets = (date) => allSets().filter((s) => s.date === date);
 export async function clearDay(date) {

@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.45.0)
+## Built (version 3.51.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -104,6 +104,11 @@
 - Heart on touch, longer animations, a backdrop per character; 8 monsters (Tidefang removed)
 - Weekly recap on Mondays and in History → Weeks; USDA basic foods built in for offline use
 - Combat number in pixel font; slimmer combat card back; rest dropdown layout fix
+
+**Patch 16**
+- Goal weight with weekly pace (% of body weight) graded Light / Moderate / Aggressive; dirty bulk 30% fat
+- Forearms: own daily card, not a workout day, alternate with "Up next", optional 4th set (bonus XP), Complete button, no rest timer or goals; Mining skill
+- Finished exercises close themselves; no swipe-back between screens
 
 **Later**
 - Hand-drawn later forms for a favourite monster; more horror monster designs

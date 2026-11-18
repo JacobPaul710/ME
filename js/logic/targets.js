@@ -23,11 +23,33 @@ export const GOALS = [
   ['dirty', 'Dirty bulk (gain fast)'],
 ];
 // Built for maximum muscle ("Hulk mode") on every goal.
+// Fat as a share of calories; carbs fill the rest (they fuel training).
 const GOAL_RULES = {
-  cut: { adjust: -500, proteinPerLb: 1.2 },   // ~1 lb a week; very high protein holds on to muscle
-  clean: { adjust: 400, proteinPerLb: 1.0 },  // solid surplus, mostly muscle
-  dirty: { adjust: 750, proteinPerLb: 1.0 },  // big surplus for the fastest gain (more fat comes with it)
+  cut: { adjust: -500, proteinPerLb: 1.2, fatPct: 0.25 },   // ~1 lb a week; very high protein holds on to muscle
+  clean: { adjust: 400, proteinPerLb: 1.0, fatPct: 0.25 },  // solid surplus, mostly muscle
+  dirty: { adjust: 750, proteinPerLb: 1.0, fatPct: 0.30 },  // big surplus for the fastest gain (more fat comes with it)
 };
+
+// Weekly pace from the calorie change (about 3,500 calories per pound), graded against the
+// research ranges as a share of body weight per week:
+//   bulk: 0.25–0.5% moderate (Iraki et al. 2019); cut: 0.5–1% moderate (Helms et al. 2014).
+export function paceInfo({ goal, weightLb, goalWeightLb }) {
+  const rule = GOAL_RULES[goal] || GOAL_RULES.clean;
+  if (!(weightLb > 0)) return null;
+  const lbWeek = (rule.adjust * 7) / 3500;
+  const pct = (Math.abs(lbWeek) / weightLb) * 100;
+  const cut = rule.adjust < 0;
+  const [lo, hi] = cut ? [0.5, 1] : [0.25, 0.5];
+  const label = pct < lo ? 'Light' : pct <= hi ? 'Moderate' : 'Aggressive';
+  const out = { lbWeek, pct, label, range: cut ? '0.5–1%' : '0.25–0.5%' };
+  if (goalWeightLb > 0) {
+    const diff = goalWeightLb - weightLb;
+    if (Math.abs(diff) < 0.5) out.atGoal = true;
+    else if ((diff > 0) !== (lbWeek > 0)) out.wrongWay = true;
+    else out.weeks = Math.ceil(Math.abs(diff / lbWeek));
+  }
+  return out;
+}
 
 // Age today from a birthday ('YYYY-MM-DD').
 export function ageFrom(birthday, today = new Date()) {
@@ -51,7 +73,7 @@ export function dailyTargets(p, today = new Date()) {
   const maintain = bmr({ ...p, age }) * (+p.activity || 1.2);
   const cal = Math.round((maintain + rule.adjust) / 10) * 10;
   const protein = Math.round(rule.proteinPerLb * p.weightLb);
-  const f = Math.round((cal * 0.25) / 9);
+  const f = Math.round((cal * rule.fatPct) / 9);
   const c = Math.max(0, Math.round((cal - protein * 4 - f * 9) / 4));
   return { cal, p: protein, c, f, maintain: Math.round(maintain), adjust: rule.adjust, age };
 }

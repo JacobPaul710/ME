@@ -7,7 +7,7 @@ export const MILESTONE_NAMES = { 7: '1 week', 15: 'Half month', 22: '3 weeks', 3
 // An Exercise check-in with no completed set does not count yet.
 export function qualifyingDates(checkins, sets) {
   const out = new Set();
-  for (const s of sets) if (s.done) out.add(s.date);
+  for (const s of sets) if (s.done && s.dayType !== 'Forearms') out.add(s.date); // forearms alone don't make a workout day
   for (const c of checkins) if (c.type === 'rest' || c.type === 'off') out.add(c.date);
   return out;
 }

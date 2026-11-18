@@ -38,6 +38,15 @@ const SCREENS = {
 
 // Settings live in a menu that slides in when you swipe in from the left edge of the screen.
 let menuOpen = false;
+
+// Move between screens without adding browser history, so an edge swipe never "goes back a page".
+function navigate(hash) {
+  if (location.hash === hash) { render(); return; }
+  history.replaceState(null, '', hash);
+  closeAllSheets();
+  if (!hash.startsWith('#settings')) closeMenu();
+  render();
+}
 function openMenu() {
   menuOpen = true;
   closeAllSheets();
@@ -82,7 +91,7 @@ function syncBadge() {
 }
 
 const ctxBase = {
-  go: (hash) => { if (location.hash === hash) render(); else location.hash = hash; },
+  go: (hash) => navigate(hash),
   rerender: () => render(),
   syncBadge,
   signOut: () => doSignOut(),
@@ -129,7 +138,11 @@ function drawTabs() {
   tabs.replaceChildren(...Object.entries(SCREENS).map(([id, [label]]) =>
     h('a', { href: `#${id}`, 'data-screen': id }, svg(ICONS[id]), h('span', null, label))));
   tabs.hidden = false;
-  tabs.onclick = () => closeMenu();
+  tabs.onclick = (e) => {
+    closeMenu();
+    const a = e.target.closest('a[href^="#"]');
+    if (a) { e.preventDefault(); navigate(a.getAttribute('href')); }
+  };
 }
 
 // One pop-up at a time (each with its own sound/voice): streak milestone, then
@@ -207,6 +220,7 @@ function doSignOut() {
 
 window.addEventListener('hashchange', () => { closeAllSheets(); if (!location.hash.startsWith('#settings')) closeMenu(); render(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+document.addEventListener('me:rerender', () => render());
 // Swipe in from the left edge opens Settings.
 let edge = null;
 document.addEventListener('touchstart', (e) => {
