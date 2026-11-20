@@ -271,10 +271,14 @@ export const removeLog = (id) => store.remove(id);
 // ---- supplements (list lives in settings; one check-in record per day) ----
 export const supplements = () => settings().supplements || [];
 // Each daily dose is its own check-off (e.g. creatine twice a day → 2 rows).
+// when: 'morning' | 'night' | 'both' (both = one morning dose and one night dose).
 export const suppDoses = () => supplements().flatMap((x) => {
-  const n = Math.max(1, Math.min(4, +x.times || 1));
-  return Array.from({ length: n }, (_, i) => ({ key: n > 1 ? `${x.id}#${i + 1}` : x.id, sup: x, n: i + 1, of: n }));
+  const when = x.when || (+x.times > 1 ? 'both' : 'morning');
+  const parts = when === 'both' ? ['morning', 'night'] : [when];
+  return parts.map((w, i) => ({ key: parts.length > 1 ? `${x.id}#${i + 1}` : x.id, sup: x, when: w, n: i + 1, of: parts.length, optional: !!x.optional, timerHours: +x.timerHours || 0 }));
 });
+// When each dose was checked off (ISO time), for the timers.
+export const suppAt = (date) => (store.get('supp:' + date) || {}).at || {};
 // When each dose was checked off today ("8:05 AM").
 export const suppTimes = (date) => (store.get('supp:' + date) || {}).times || {};
 export const setSupplements = (list) => saveSettings({ ...settings(), supplements: list });
@@ -282,15 +286,19 @@ export const suppTaken = (date) => (store.get('supp:' + date) || {}).taken || []
 export function toggleSupp(date, id) {
   const t = suppTaken(date);
   const times = { ...suppTimes(date) };
+  const at = { ...suppAt(date) };
   const on = !t.includes(id);
-  if (on) times[id] = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); else delete times[id];
-  return store.put('supp', 'supp:' + date, { date, taken: on ? [...t, id] : t.filter((x) => x !== id), times });
+  if (on) { times[id] = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); at[id] = new Date().toISOString(); } else { delete times[id]; delete at[id]; }
+  return store.put('supp', 'supp:' + date, { date, taken: on ? [...t, id] : t.filter((x) => x !== id), times, at });
 }
 // Each day counts as the share of your current supplements you took (all = 1).
 export function suppDays(asOf = '9999', keep = () => true) {
-  const ids = new Set(suppDoses().map((d) => d.key));
-  if (!ids.size) return 0;
-  return store.all('supp').filter((r) => r.date <= asOf && keep(r.date)).reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x)).length / ids.size, 0);
+  const doses = suppDoses();
+  const ids = new Set(doses.filter((d) => !d.optional).map((d) => d.key));
+  const extra = new Set(doses.filter((d) => d.optional).map((d) => d.key)); // optional ones are a bonus
+  if (!ids.size && !extra.size) return 0;
+  const per = 1 / Math.max(1, ids.size);
+  return store.all('supp').filter((r) => r.date <= asOf && keep(r.date)).reduce((a, r) => a + (r.taken || []).filter((x) => ids.has(x) || extra.has(x)).length * per, 0);
 }
 
 // ---- weekly recap (Monday to Sunday) ----

@@ -534,3 +534,20 @@ html, body { overscroll-behavior-x: none; }
 html[data-theme="stone"] .meal-head, html[data-theme="wood"] .meal-head { color: #2c2117; }
 /* Your logged food glows, so it never looks like a button */
 .meal-item { box-shadow: 0 0 0 2px rgba(224, 169, 46, 0.5), 0 0 12px rgba(224, 169, 46, 0.4); border-color: #e0a92e !important; }
+/* Magic card (Today) */
+.card.magic { gap: 6px; }
+.magic-count { font-size: 13px; font-weight: 800; color: #6b3fa0; }
+.magic-timer { background: #2c2142; color: #e9dcff; border-radius: 10px; padding: 7px 10px; }
+.magic-timer-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.magic-timer-row b { margin-left: auto; font-family: ui-monospace, monospace; font-size: 16px; color: #fff; }
+.magic-bar { height: 5px; background: #4a3d63; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.magic-bar i { display: block; height: 100%; background: #b48cff; }
+.magic-sec-h { display: flex; width: 100%; background: none; border: 0; padding: 6px 0 2px; font: inherit; font-size: 14px; font-weight: 800; color: var(--muted); cursor: pointer; text-align: left; }
+.magic-sec-h span { margin-left: auto; font-weight: 600; }
+.magic-row { display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(0, 0, 0, 0.07); min-height: 48px; }
+.magic-row .setcheck { width: 34px; height: 34px; font-size: 18px; }
+.magic-name { flex: 1; background: none; border: 0; padding: 8px 0; font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; }
+.magic-name .opt { font-size: 12px; color: #6b3fa0; font-weight: 700; }
+.magic-row .t, .magic-fold .t { margin-left: auto; color: var(--muted); font-size: 13px; }
+.magic-fold { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 0; background: rgba(0, 0, 0, 0.05); font: inherit; font-size: 15px; color: var(--text); cursor: pointer; text-align: left; }
+.magic-fold.done { background: rgba(63, 138, 58, 0.14); }

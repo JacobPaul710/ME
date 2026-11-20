@@ -1,5 +1,5 @@
 import { h, fmt, svg } from './dom.js';
-import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot, confirmSheet } from './components.js';
+import { button, card, header, light, progressRow, sheet, field, numberInput, toast, statusDot, confirmSheet, checkbox } from './components.js';
 import { streakWidget } from './streakWidget.js';
 import { nice, iso, parse, addDays, short } from '../logic/dates.js';
 import { MACROS } from '../logic/nutrition.js';
@@ -8,6 +8,8 @@ import { session } from '../core/auth.js';
 import { themeBackground } from './levelThemes.js';
 import { braziers, startFlames } from './braziers.js';
 import { COMBAT_MAX } from '../logic/skills.js';
+import { skillUp } from '../celebrations.js';
+import { ICONS } from './character.js';
 
 // Pick a workout type for a day, then open the logger for that day.
 // A workout only counts once at least one set is logged as done.
@@ -154,6 +156,94 @@ export function recapView(r, title) {
     line('Weight change', r.weightChange == null ? 'Needs 2 weigh-ins' : `${sign(r.weightChange)} lb`));
 }
 
+// ---- Magic card: morning and night check-offs, timers running right on the card ----
+const HAT = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2 L18 17 H6 Z" fill="#6b3fa0" stroke="#1d140c" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 18 Q12 15 21 18 Q12 21 3 18 Z" fill="#4a2a78" stroke="#1d140c" stroke-width="1.2"/><path d="M10 9 l.6 1.4 1.4.2-1 1 .3 1.4-1.3-.7-1.3.7.3-1.4-1-1 1.4-.2z" fill="#ffd23f"/><circle cx="14" cy="13" r=".9" fill="#ffd23f"/></svg>';
+const WAND = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20 L15 9" stroke="#3a2a1a" stroke-width="2.6" stroke-linecap="round"/><path d="M13.5 10.5 L15.5 8.5" stroke="#f3e7cc" stroke-width="2.6" stroke-linecap="round"/><path d="M18 2 l.9 2.2 2.2.9-2.2.9-.9 2.2-.9-2.2-2.2-.9 2.2-.9z" fill="#ffd23f" stroke="#a37a1e" stroke-width=".6"/></svg>';
+const opened = { morning: null, night: null }; // a section you tapped open (or closed)
+const hms = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+
+async function magicTick(date, x) {
+  const magic = () => data.skillInfo(iso()).list.find((sk) => sk.id === 'herblore');
+  const before = magic();
+  await data.toggleSupp(date, x.key);
+  const after = magic();
+  const d = after.xp - before.xp;
+  if (d) toast(`${d > 0 ? '+' : '−'}${fmt(Math.abs(d), 0)} Magic XP`);
+  if (after.level > before.level) skillUp('Magic', after.level, svg(ICONS.herblore));
+}
+
+function magicCard(today) {
+  const doses = data.suppDoses();
+  if (!doses.length) return null;
+  const taken = new Set(data.suppTaken(today));
+  const times = data.suppTimes(today);
+  const at = data.suppAt(today);
+  const req = doses.filter((x) => !x.optional);
+  const done = req.filter((x) => taken.has(x.key)).length;
+  // timers: from today's ticks, and from yesterday's (a late dose can run past midnight)
+  const timers = [];
+  for (const [day, takenAt] of [[today, at], [addDays(today, -1), data.suppAt(addDays(today, -1))]]) {
+    for (const x of doses) if (x.timerHours && takenAt[x.key]) {
+      const end = new Date(takenAt[x.key]).getTime() + x.timerHours * 3600e3;
+      if (end > Date.now() && !timers.some((t) => t.x.key === x.key)) timers.push({ x, end, total: x.timerHours * 3600e3, day }); // today's tick wins
+    }
+  }
+  const timerEls = timers.map((t) => {
+    const left = h('b', null, hms(t.end - Date.now()));
+    const fill = h('i', { style: `width:${Math.min(100, (1 - (t.end - Date.now()) / t.total) * 100)}%` });
+    const el = h('div', { class: 'magic-timer', 'data-end': String(t.end), 'data-total': String(t.total) },
+      h('div', { class: 'magic-timer-row' }, svg(WAND), h('span', null, `${t.x.sup.name}${t.x.sup.dose ? ` ${t.x.sup.dose}` : ''}`), left),
+      h('div', { class: 'magic-bar' }, fill));
+    return el;
+  });
+  const section = (when, label, icon) => {
+    const list = doses.filter((x) => x.when === when);
+    if (!list.length) return null;
+    const need = list.filter((x) => !x.optional);
+    const complete = need.length > 0 && need.every((x) => taken.has(x.key));
+    const morningDone = doses.filter((x) => x.when === 'morning' && !x.optional).every((x) => taken.has(x.key));
+    // Morning is open until it's done; then it folds and Night opens. Tap a folded one to open it.
+    const auto = when === 'morning' ? !complete : morningDone && !complete;
+    const open = opened[when] ?? auto;
+    const lastAt = list.filter((x) => taken.has(x.key)).map((x) => times[x.key]).filter(Boolean).pop();
+    const n = need.filter((x) => taken.has(x.key)).length;
+    if (!open) {
+      return h('button', { type: 'button', class: `magic-fold${complete ? ' done' : ''}`, onClick: () => { opened[when] = true; document.dispatchEvent(new CustomEvent('me:rerender')); } },
+        complete ? '✓ ' : `${icon} `, h('b', null, label), complete ? ` · ${n} of ${need.length}` : ` · ${need.length - n} to go`,
+        h('span', { class: 't' }, complete ? lastAt || '' : when === 'night' ? 'opens after Morning' : 'tap to open'));
+    }
+    return h('div', { class: 'magic-sec' },
+      h('button', { type: 'button', class: 'magic-sec-h', onClick: () => { opened[when] = false; document.dispatchEvent(new CustomEvent('me:rerender')); } },
+        `${icon} ${label}`, h('span', null, `${n} of ${need.length}`)),
+      list.map((x) => {
+        const on = taken.has(x.key);
+        return h('div', { class: 'magic-row' },
+          checkbox(on, () => magicTick(today, x), `${x.sup.name}${x.sup.dose ? ` ${x.sup.dose}` : ''} ${on ? 'taken. Tap to undo' : 'not taken'}`),
+          svg(WAND),
+          h('button', { type: 'button', class: 'magic-name', onClick: () => magicTick(today, x) },
+            `${x.sup.name}${x.sup.dose ? ` ${x.sup.dose}` : ''}`,
+            x.optional ? h('span', { class: 'opt' }, ` optional${x.timerHours ? ` · ${x.timerHours} h timer` : ''}`) : x.timerHours ? h('span', { class: 'opt' }, ` ${x.timerHours} h timer`) : null),
+          h('span', { class: 't' }, on && times[x.key] ? times[x.key] : ''));
+      }));
+  };
+  const card = h('section', { class: 'card magic', 'aria-label': 'Magic' },
+    h('div', { class: 'row' }, svg(HAT), h('h2', { class: 'card-title grow' }, 'Magic'), h('span', { class: 'magic-count' }, done >= req.length && req.length ? `${done} of ${req.length} ✓` : `${done} of ${req.length}`)),
+    timerEls, section('morning', 'Morning', '☀️'), section('night', 'Night', '🌙'));
+  // keep the timers ticking while the card is on screen
+  if (timerEls.length) {
+    const tick = setInterval(() => {
+      if (!card.isConnected) { clearInterval(tick); return; }
+      for (const el of card.querySelectorAll('.magic-timer')) {
+        const left = +el.dataset.end - Date.now();
+        if (left <= 0) { clearInterval(tick); toast('A Magic timer just finished'); document.dispatchEvent(new CustomEvent('me:rerender')); return; }
+        el.querySelector('b').textContent = hms(left);
+        el.querySelector('.magic-bar i').style.width = `${Math.min(100, (1 - left / +el.dataset.total) * 100)}%`;
+      }
+    }, 1000);
+  }
+  return card;
+}
+
 function recapCard(today) {
   if (parse(today).getDay() !== 1) return null; // Mondays only
   const r = data.weekRecap(addDays(today, -7), today);
@@ -222,6 +312,7 @@ export function renderToday(root, ctx) {
     (() => { const [l, r] = braziers(); startFlames(); return h('header', { class: 'hero' }, l,
       h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
     levelCard(today),
+    magicCard(today),
     recapCard(today),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),

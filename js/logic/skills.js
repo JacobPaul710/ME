@@ -23,7 +23,7 @@ export const SKILLS = [
   { id: 'stamina', name: 'Stamina', how: 'Sets completed', perWeek: 45, unit: 'sets' },
   { id: 'mastery', name: 'Mastery', how: 'Times you went up in weight on a lift', perWeek: 2, unit: 'weight-ups' },
   { id: 'mining', name: 'Mining', how: 'Forearm reps (the optional 4th set earns 50% more)', perWeek: 950 },
-  { id: 'herblore', name: 'Herblore', how: 'Supplements taken (check them off on the Food tab)', perWeek: 7, unit: 'full days' },
+  { id: 'herblore', name: 'Magic', how: 'Supplements and medications checked off on the Magic card (Today)', perWeek: 7, unit: 'full days' },
 ];
 
 // RuneScape XP table: XP needed to reach each level.

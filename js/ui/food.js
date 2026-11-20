@@ -294,35 +294,6 @@ function loggedToday(date) {
     }).filter(Boolean) : empty('Nothing logged yet today.'));
 }
 
-// Daily supplement check-in (set the list in ☰ Settings → Supplements).
-function supplementsCard(date) {
-  const list = data.suppDoses();
-  if (!list.length) return null;
-  const taken = new Set(data.suppTaken(date));
-  const times = data.suppTimes(date);
-  const n = list.filter((x) => taken.has(x.key)).length;
-  // Check one off and show the Herblore XP it earned (or lost, when unchecked).
-  const tick = async (x) => {
-    const herb = () => data.skillInfo(iso()).list.find((sk) => sk.id === 'herblore');
-    const before = herb();
-    await data.toggleSupp(date, x.key);
-    const after = herb();
-    const d = after.xp - before.xp;
-    if (d) toast(`${d > 0 ? '+' : '−'}${fmt(Math.abs(d), 0)} Herblore XP${after.level > before.level ? ` · Herblore level ${after.level}!` : ''}`);
-    if (after.level > before.level) skillUp('Herblore', after.level, svg(ICONS.herblore));
-  };
-  return h('section', { class: 'card', 'aria-label': 'Supplements' },
-    h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Supplements'), h('span', { class: 'sub' }, `${n} of ${list.length}`)),
-    h('div', { class: 'list' }, list.map((x) => {
-      const name = x.of > 1 ? `${x.sup.name} · dose ${x.n} of ${x.of}` : x.sup.name;
-      const done = taken.has(x.key);
-      return h('div', { class: 'item' },
-        light(done, () => tick(x), `${name} ${done ? 'taken' : 'not taken'}`),
-        h('button', { type: 'button', class: 'item-main', onClick: () => tick(x) },
-          h('span', { class: 'item-name' }, name),
-          h('span', { class: 'sub' }, [x.sup.dose, done && times[x.key] ? `taken ${times[x.key]}` : null].filter(Boolean).join(' · '))));
-    })));
-}
 
 // Each meal gets its own colour and icon.
 const MEAL_ICON = { breakfast: '☀️', lunch: '🥪', dinner: '🍽️', snacks: '🍎' };
@@ -352,5 +323,5 @@ export function renderFood(root, ctx) {
     summaryCard(today),
     addSection,
     past ? mealBreakdown(today, { editable: true, onAdd: (meal) => { state.meal = meal; ctx.rerender(); document.querySelector('#add-food input[type="search"]')?.focus(); } }) : loggedToday(today),
-    supplementsCard(today)].filter(Boolean));
+    ].filter(Boolean));
 }

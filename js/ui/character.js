@@ -148,7 +148,7 @@ export const ICONS = {
   stamina: I('<path d="M14 2 L5 13 H11 L9 22 L19 10 H13 Z" fill="#ffd23f" stroke="#1d140c" stroke-width="1.2" stroke-linejoin="round"/>'),
   mastery: I('<path d="M4 9 H18 Q21 9 21 11 H17 L15 14 H9 L7 11 H4 Z" fill="#7a8087" stroke="#1d140c" stroke-width="1.1"/><path d="M9 14 H15 L16 18 H8 Z" fill="#50555b" stroke="#1d140c" stroke-width="1.1"/><rect x="6" y="18" width="12" height="3" fill="#7a8087" stroke="#1d140c" stroke-width="1.1"/><path d="M13 2 L16 6 M16 2 L13 6" stroke="#ffbf1a" stroke-width="1.4"/>'),
   mining: I('<path d="M3 8 Q12 1 21 8 Q12 5 3 8 Z" fill="#a3a9b0" stroke="#1d140c" stroke-width="1.1"/><path d="M12 5 L12 22" stroke="#7a4a22" stroke-width="2.6" stroke-linecap="round"/><path d="M12 5 L12 22" stroke="#1d140c" stroke-width="0.6" stroke-dasharray="2 3"/><circle cx="18.5" cy="19" r="2.5" fill="#7a8087" stroke="#1d140c" stroke-width="1"/>'),
-  herblore: I('<path d="M9 2 H15 V4 H14 V9 L19 17 Q20.5 21 16.5 21 H7.5 Q3.5 21 5 17 L10 9 V4 H9 Z" fill="#d6eef2" stroke="#1d140c" stroke-width="1.1"/><path d="M7.5 15 H16.5 L18 17.5 Q19 20 16 20 H8 Q5 20 6 17.5 Z" fill="#3fbf5a"/><circle cx="10" cy="17" r="0.9" fill="#b7f5c4"/>'),
+  herblore: I('<path d="M12 2 L18 17 H6 Z" fill="#6b3fa0" stroke="#1d140c" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 18 Q12 15 21 18 Q12 21 3 18 Z" fill="#4a2a78" stroke="#1d140c" stroke-width="1.2"/><path d="M10 9 l.6 1.4 1.4.2-1 1 .3 1.4-1.3-.7-1.3.7.3-1.4-1-1 1.4-.2z" fill="#ffd23f"/><circle cx="14" cy="13" r=".9" fill="#ffd23f"/>'), // Magic: wizard hat
 };
 
 function skillTile(s) {

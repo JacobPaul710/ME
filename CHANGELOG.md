@@ -3,6 +3,11 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.72.0 (ME patch 21)
+- 3.72.0 Magic card on Today: Morning and Night check-offs with a wand by each, Morning folds when done and Night opens, timers (e.g. 10 h after Ritalin) count down right on the card, optional items give bonus XP.
+- 3.71.0 Supplements and medications: each has When (Morning, Night, or both), Optional, and an optional timer, set in Settings. They moved off the Food tab onto the Magic card.
+- 3.70.0 Herblore is now Magic, with a wizard hat icon.
+
 ## 3.69.0 (ME patch 20)
 - 3.69.0 New app logo: walnut dumbbell with ME.
 - 3.68.0 Every weighed food has a "whole item" choice; if its size isn't known you type it once and it's remembered.

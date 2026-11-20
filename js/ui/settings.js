@@ -158,11 +158,17 @@ function editSupplement(item) {
   const list = data.supplements();
   const name = h('input', { type: 'text', value: item?.name || '', placeholder: 'e.g. Creatine' });
   const dose = h('input', { type: 'text', value: item?.dose || '', placeholder: 'e.g. 2.5 g' });
-  const times = h('select', null, [1, 2, 3, 4].map((n) => h('option', { value: String(n), selected: n === (+item?.times || 1) }, n === 1 ? 'Once a day' : `${n} times a day (separate check-offs)`)));
-  const s = sheet(item ? 'Edit supplement' : 'Other supplement', h('div', { class: 'stack' }, field('Name', name), field('Amount each time', dose), field('How often', times)), [
+  const cur = item?.when || (+item?.times > 1 ? 'both' : 'morning');
+  const when = h('select', null, [['morning', 'Morning'], ['night', 'Night'], ['both', 'Morning and night (two check-offs)']].map(([v, l]) => h('option', { value: v, selected: v === cur }, l)));
+  const optional = h('input', { type: 'checkbox', checked: !!item?.optional, 'aria-label': 'Optional' });
+  const timer = numberInput(item?.timerHours || '', { placeholder: 'e.g. 10', 'aria-label': 'Timer hours' });
+  const s = sheet(item ? 'Edit' : 'Add your own', h('div', { class: 'stack' }, field('Name', name), field('Amount (leave blank if you like)', dose), field('When', when),
+    h('label', { class: 'row check' }, optional, h('span', null, 'Optional (bonus Magic XP, not needed to finish the day)')),
+    field('Start a timer when ticked (hours, blank for none)', timer)), [
     button('Save', async () => {
       if (!name.value.trim()) { name.focus(); return; }
-      const rec = { ...(item || {}), id: item?.id || newId(), name: name.value.trim(), dose: dose.value.trim(), times: +times.value };
+      const rec = { ...(item || {}), id: item?.id || newId(), name: name.value.trim(), dose: dose.value.trim(), when: when.value, optional: optional.checked, timerHours: +timer.value > 0 ? +timer.value : null };
+      delete rec.times;
       await data.setSupplements(item ? list.map((x) => (x.id === item.id ? rec : x)) : [...list, rec]);
       s.close();
     }, 'primary block'),
@@ -179,15 +185,15 @@ function addSupplementSheet() {
       await data.setSupplements([...data.supplements(), { id: newId(), preset: x.id, name: x.name, dose: suggest(x.id, p) }]);
       s.close(); toast(`${x.name} added`);
     } }, h('span', { class: 'item-name' }, `${x.name} · ${suggest(x.id, p)}`), h('span', { class: 'sub' }, x.note))))),
-  [button('Other…', () => { s.close(); editSupplement(null); }, 'block')]);
+  [button('Add your own (e.g. a medication)…', () => { s.close(); editSupplement(null); }, 'block')]);
 }
 
 function supplementsCard() {
   const list = data.supplements();
-  return card(h('h2', { class: 'card-title' }, 'Supplements'),
-    h('p', { class: 'sub', style: 'margin:0' }, 'Check them off each day on the Food tab. Each one levels up Herblore.'),
+  return card(h('h2', { class: 'card-title' }, 'Magic (supplements and medications)'),
+    h('p', { class: 'sub', style: 'margin:0' }, 'Supplements and medications. Check them off on the Magic card on Today; each one levels up Magic.'),
     list.length ? h('div', { class: 'list' }, list.map((x) => h('button', { type: 'button', class: 'item item-main', 'aria-label': `Edit ${x.name}`, onClick: () => editSupplement(x) },
-      h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, [x.dose, +x.times > 1 ? `${x.times}× a day` : null].filter(Boolean).join(' · '))))) : null,
+      h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, [x.dose, { morning: 'Morning', night: 'Night', both: 'Morning and night' }[x.when || (+x.times > 1 ? 'both' : 'morning')], x.optional ? 'optional' : null, x.timerHours ? `${x.timerHours} h timer` : null].filter(Boolean).join(' · '))))) : null,
     button('Add supplement', addSupplementSheet, 'block'));
 }
 
