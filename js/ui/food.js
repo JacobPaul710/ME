@@ -8,7 +8,7 @@ import { startScan } from '../core/scanner.js';
 import * as data from '../data.js';
 
 // Screen state kept between redraws.
-const state = { meal: data.mealNow(), q: '', onlineBusy: false, onlineError: '' };
+const state = { meal: null, q: '', onlineBusy: false, onlineError: '' }; // meal: only set by "+ Add to Lunch" etc.
 const onlineCache = new Map(); // search words -> online results, so typing more narrows instantly
 const clearSearch = () => {
   state.q = ''; state.onlineError = '';
@@ -17,7 +17,8 @@ const clearSearch = () => {
 };
 
 const mealName = (id) => (data.MEALS.find((m) => m[0] === id) || [, 'Snacks'])[1];
-const mealSelect = (value) => h('select', null, data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label)));
+// You always pick the meal yourself (no guessing from the time of day).
+const mealSelect = (value) => h('select', null, [h('option', { value: '', selected: !value, disabled: true }, 'Choose a meal'), ...data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label))]);
 const macroText = (m) => `${fmt(m.cal)} cal · ${fmt(m.p, 1)} g protein · ${fmt(m.c, 1)} g carbs · ${fmt(m.f, 1)} g fat`;
 const sourceLabel = { usda: 'Basic foods', 'usda-online': 'USDA', off: 'Open Food Facts', custom: 'My item' };
 
@@ -49,7 +50,8 @@ export function foodSheet(food, today) {
   const s = sheet(base.name, body, [
     button('Add', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
-      state.meal = mealSel.value;
+      if (!mealSel.value) { toast('Choose a meal first'); mealSel.focus(); return; }
+      state.meal = null;
       clearSearch();
       await data.logFood(today, base, +amount.value, unitSel.value, mealSel.value);
       s.close();
@@ -65,14 +67,17 @@ export function customSheet(today, prefill = {}) {
   const nums = Object.fromEntries(MACROS.map((m) => [m.key, numberInput('')]));
   const read = () => ({ name: name.value, servingLabel: serving.value, cal: nums.cal.value, p: nums.p.value, c: nums.c.value, f: nums.f.value });
   const valid = () => { if (!name.value.trim()) { toast('Enter a name'); return false; } return true; };
+  const customMeal = mealSelect(state.meal);
   const s = sheet('Add item', h('div', { class: 'stack' },
     field('Name', name),
     field('Serving (what the numbers are for)', serving),
-    h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), nums[m.key])))), [
+    h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), nums[m.key]))),
+    field('Meal', customMeal)), [
     button('Save and add to today', async () => {
       if (!valid()) return;
+      if (!customMeal.value) { toast('Choose a meal first'); customMeal.focus(); return; }
       const f = await data.saveCustomFood(read());
-      await data.logFood(today, f, 1, 'serving', state.meal);
+      await data.logFood(today, f, 1, 'serving', customMeal.value);
       s.close();
       toast('Saved and added');
     }, 'primary block'),
@@ -118,11 +123,7 @@ function foodRow(food, today, quickAdd) {
     h('button', { type: 'button', class: 'item-main', onClick: () => foodSheet(food, today) },
       h('span', { class: 'item-name' }, food.name),
       h('span', { class: 'sub' }, [food.brand, sourceLabel[food.source], `${fmt(m.cal)} cal`].filter(Boolean).join(' · '))),
-    quickAdd ? h('button', { type: 'button', class: 'btn add-btn', 'aria-label': `Add ${food.name}`, onClick: async () => {
-      clearSearch();
-      await data.logFood(today, food, d.amount, d.unit, state.meal);
-      toast(`Added ${food.name} to ${mealName(state.meal)}`);
-    } }, '+ Add') : null);
+    quickAdd ? h('button', { type: 'button', class: 'btn add-btn', 'aria-label': `Add ${food.name}`, onClick: () => foodSheet(food, today) }, '+ Add') : null);
 }
 
 // Live search: results narrow with every letter. Foods on the phone show right away;
@@ -255,12 +256,19 @@ function summaryCard(date) {
 }
 
 // Everything eaten today in one list; tap an item to change its amount or remove it.
+// Today's food, grouped under the meal you added it to. Tap an item to change or remove it.
 function loggedToday(date) {
   const logs = data.foodLogs(date);
   return card(h('h2', { class: 'card-title' }, 'Logged today'),
-    logs.length ? h('div', { class: 'list' }, logs.map((l) => h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) },
-      h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, `${fmt(l.cal)} cal`)),
-      h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`)))) : empty('Nothing logged yet today.'));
+    logs.length ? data.MEALS.map(([id, label]) => {
+      const items = logs.filter((l) => data.mealOf(l) === id);
+      if (!items.length) return null;
+      return h('div', { class: 'stack tight logged-meal' },
+        h('div', { class: 'row' }, h('h3', { class: 'list-head grow' }, label), h('span', { class: 'sub' }, `${fmt(data.totalsOf(items).cal)} cal`)),
+        h('div', { class: 'list' }, items.map((l) => h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) },
+          h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, `${fmt(l.cal)} cal`)),
+          h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`)))));
+    }).filter(Boolean) : empty('Nothing logged yet today.'));
 }
 
 // Daily supplement check-in (set the list in ☰ Settings → Supplements).
@@ -294,7 +302,6 @@ export function renderFood(root, ctx) {
   const today = past || ctx.today;
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
     h('h2', { class: 'card-title' }, 'Add food'),
-    h('div', { class: 'field' }, h('span', null, 'Adding to'), segmented(data.MEALS, state.meal, (v) => { state.meal = v; ctx.rerender(); })),
     h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today)), button('Frequently used', () => frequentSheet(today))),
     searchPanel(today));
   root.append(...[

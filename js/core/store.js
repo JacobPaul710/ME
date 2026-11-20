@@ -34,6 +34,16 @@ export function all(kind) {
 
 export function get(id) { return view(recs.get(id)); }
 
+// Backup: every saved record (kind + data), and restoring them as your own changes so they sync.
+export function backup() {
+  return [...recs.values()].filter((r) => !r.deleted).map((r) => ({ id: r.id, kind: r.kind, data: r.data, updated_at: r.updated_at }));
+}
+export async function restore(list) {
+  let n = 0;
+  for (const r of list) if (r && r.id && r.kind && r.data) { await put(r.kind, r.id, r.data); n++; }
+  return n;
+}
+
 export function newId(prefix) { return `${prefix}:${crypto.randomUUID()}`; }
 
 function stamp(prev) {

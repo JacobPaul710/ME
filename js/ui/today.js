@@ -89,13 +89,13 @@ export function weighSheet(today) {
   const s = sheet('Weigh-in', field('Weight (lb)', input), [button('Save', save, 'primary block')]);
 }
 
-function weighCard(today, go) {
+// The whole card is the button: tap anywhere on it to log or edit today's weight.
+function weighCard(today) {
   const w = data.weighin(today);
-  return card(
+  return h('button', { type: 'button', class: 'card weigh-card', 'aria-label': w ? `Weigh-in: ${w.lb} lb today. Tap to edit` : 'Weigh-in: not logged today. Tap to log', onClick: () => weighSheet(today) },
     h('div', { class: 'row' },
-      light(!!w, () => weighSheet(today), w ? 'Edit weigh-in' : 'Log weigh-in'),
-      h('div', { class: 'grow' }, h('h2', { class: 'card-title' }, 'Weigh-in'), h('div', { class: 'sub' }, w ? `${w.lb} lb today` : 'Not logged today')),
-      button('History', () => go('#history/weight'), 'ghost')));
+      statusDot(!!w),
+      h('div', { class: 'grow' }, h('h2', { class: 'card-title' }, 'Weigh-in'), h('div', { class: 'sub' }, w ? `${w.lb} lb today` : 'Not logged today'))));
 }
 
 function foodCard(today, go) {

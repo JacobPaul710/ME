@@ -6,6 +6,7 @@ import { iso } from '../logic/dates.js';
 import { session } from '../core/auth.js';
 import { APP_VERSION } from '../config.js';
 import * as data from '../data.js';
+import * as store from '../core/store.js';
 import { LEVEL_THEMES } from './levelThemes.js';
 import { ACTIVITY, GOALS, PACES, activityValue, paceInfo } from '../logic/targets.js';
 import { checkForUpdate } from '../core/update.js';
@@ -27,6 +28,36 @@ const EXPORTS = {
   weighins: ['Weigh-ins', [['date', 'date'], ['weight_lb', 'lb']]],
   checkins: ['Check-ins', [['date', 'date'], ['type', 'type'], ['workout', 'dayType']]],
 };
+
+// Full backup to a file, and restore from it. Your data also lives on the phone and in your
+// account and app updates never touch it; this is an extra copy you keep.
+async function shareFile(file, title) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(file);
+  const a = h('a', { href: url, download: file.name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+function backupCard() {
+  const pick = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-label': 'Backup file' });
+  pick.addEventListener('change', async () => {
+    const f = pick.files[0]; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      if (!j || j.app !== 'ME' || !Array.isArray(j.records)) throw new Error('bad');
+      confirmSheet('Restore this backup?', `It has ${j.records.length} entries from ${j.date}. Anything in it replaces the same entry here; nothing else is removed.`, 'Restore', async () => {
+        const n = await store.restore(j.records); toast(`Restored ${n} entries`);
+      });
+    } catch { toast("That file isn't an ME backup"); }
+    pick.value = '';
+  });
+  return card(h('h2', { class: 'card-title' }, 'Backup'),
+    h('p', { class: 'sub', style: 'margin:0' }, 'Updates never erase your data: it stays on your phone and in your account. A backup is an extra copy you can keep in Files.'),
+    button('Download backup', () => shareFile(new File([JSON.stringify({ app: 'ME', version: APP_VERSION, date: iso(), records: store.backup() })], `me-backup-${iso()}.json`, { type: 'application/json' }), 'ME backup'), 'block'),
+    button('Restore from backup', () => pick.click(), 'block'), pick);
+}
 
 async function exportCSV(key) {
   const [label, cols] = EXPORTS[key];
@@ -232,6 +263,7 @@ export function renderSettings(root, ctx) {
     restCard(),
     card(h('h2', { class: 'card-title' }, 'Rep goal'),
       field('Sessions in a row before the rep goal goes up', sessions)),
+    backupCard(),
     card(h('h2', { class: 'card-title' }, 'Export (CSV)'),
       h('div', { class: 'grid2' }, Object.entries(EXPORTS).map(([k, [label]]) => button(label, () => exportCSV(k))))),
     card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Account'), ctx.syncBadge()),

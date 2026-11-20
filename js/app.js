@@ -224,6 +224,12 @@ function doSignOut() {
 window.addEventListener('hashchange', () => { closeAllSheets(); if (!location.hash.startsWith('#settings')) closeMenu(); render(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 document.addEventListener('me:rerender', () => render());
+// iPhone keyboard: lift pop-up sheets above it so the box you're typing in stays visible.
+if (window.visualViewport) {
+  const kb = () => document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(innerHeight - visualViewport.height - visualViewport.offsetTop))}px`);
+  visualViewport.addEventListener('resize', kb);
+  visualViewport.addEventListener('scroll', kb);
+}
 // Swipe in from the left edge opens Settings.
 let edge = null;
 document.addEventListener('touchstart', (e) => {

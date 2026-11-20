@@ -3,6 +3,12 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.58.0 (ME patch 18)
+- 3.58.0 Backup in Settings: download all your data to a file and restore from it (updates never erase data; this is an extra copy).
+- 3.57.0 Food: no "Adding to" row; you choose the meal for each food when you add it (nothing pre-picked). Logged today is grouped by meal.
+- 3.56.1 Pop-up sheets sit above the iPhone keyboard, so the box you're typing in stays visible.
+- 3.56.0 The whole weigh-in card is the button; its History button is gone (weights are in History → Weight).
+
 ## 3.55.1 (ME patch 17)
 - 3.55.1 Forearms: "Complete" is always there, so you can finish after any number of sets.
 - 3.55.0 Forearms have their own page from the workout picker: one card per curl, the one that's due on top with a glowing border and "Up next", the one you did last underneath.
