@@ -129,6 +129,8 @@ export const setForearmRest = (date, on) => (on ? store.put('farest', 'farest:' 
 const sizeKey = (f) => 'foodsize:' + String(`${f.brand || ''} ${f.name}`).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
 export const foodSize = (f) => (store.get(sizeKey(f)) || {}).grams || null;
 export const setFoodSize = (f, grams) => store.put('foodsize', sizeKey(f), { grams });
+export const workoutDone = (dayType, date) => !!store.get(`wkdone:${dayType}:${date}`);
+export const setWorkoutDone = (dayType, date) => store.put('wkdone', `wkdone:${dayType}:${date}`, { dayType, date });
 export const allSetsDone = () => allSets().filter((s) => s.done);
 export const daySets = (date) => allSets().filter((s) => s.date === date);
 export async function clearDay(date) {

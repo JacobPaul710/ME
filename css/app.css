@@ -561,3 +561,11 @@ html[data-theme="stone"] .meal-head, html[data-theme="wood"] .meal-head { color:
 label.row.check { display: flex; align-items: center; gap: 10px; }
 label.row.check input[type="checkbox"] { width: 24px; height: 24px; min-height: 0; flex: none; margin: 0; }
 label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white-space: normal; }
+
+/* Each meal's outline matches its header colour */
+.logged-meal.m-breakfast, .card.meal.m-breakfast { border-color: #e8b867 !important; }
+.logged-meal.m-lunch, .card.meal.m-lunch { border-color: #8fc0e0 !important; }
+.logged-meal.m-dinner, .card.meal.m-dinner { border-color: #c79bd0 !important; }
+.logged-meal.m-snacks, .card.meal.m-snacks { border-color: #9cc98f !important; }
+/* Complete workout: a different colour from the rest */
+.btn.complete-workout, html[data-theme] .btn.complete-workout { background: #2f6b3a; color: #fff; border-color: #2f6b3a; }

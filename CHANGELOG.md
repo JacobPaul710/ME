@@ -3,6 +3,12 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.81.0 (ME patch 23)
+- 3.81.0 "Complete workout" button (green) at the bottom of a workout: closes what you did and shows the summary even if you skipped an exercise.
+- 3.80.0 Magic card: Morning and Night both start folded with a yellow/green light; the card's light goes green when everything is taken. No counts or taken times; timers stay.
+- 3.79.0 Add food buttons: Scan barcode, Frequently used, Create item ("Add item" renamed).
+- 3.78.0 Each meal's outline matches its header colour.
+
 ## 3.77.0 (ME patch 22)
 - 3.77.0 Your Magic list is set up for you once: Creatine 2.5 g morning and night, Ritalin 27 mg (10 h timer), Ritalin 10 mg optional (4 h timer), Wellbutrin (morning), Lexapro (night).
 - 3.76.0 Today order: combat level, calendar, Magic, weigh-in, "What are we doing today?", nutrition.

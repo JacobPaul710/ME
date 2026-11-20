@@ -429,7 +429,19 @@ export function renderTrain(root, ctx) {
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
   // Every exercise done: the summary card goes on top.
-  if (exs.length && root.querySelectorAll('.ex-done').length >= exs.length) root.querySelector('.page-head')?.after(workoutSummary(dayType, exs, today));
+  const allDone = exs.length && root.querySelectorAll('.ex-done').length >= exs.length;
+  if (allDone || data.workoutDone(dayType, today)) root.querySelector('.page-head')?.after(workoutSummary(dayType, exs, today));
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
+  // Complete workout: for when an exercise gets skipped. Closes everything you did sets for.
+  const anySet = data.daySets(today).some((x) => x.done && x.dayType === dayType);
+  if (anySet && !root.querySelector('.workout-done')) {
+    root.append(button('Complete workout', async () => {
+      const sets = data.daySets(today).filter((x) => x.done && x.dayType === dayType);
+      for (const e of exs) if (sets.some((x) => x.exerciseId === e.id)) await data.setExComplete(e.id, today, true);
+      await data.setWorkoutDone(dayType, today);
+      window.scrollTo(0, 0);
+      document.dispatchEvent(new CustomEvent('me:rerender'));
+    }, 'complete-workout block'));
+  }
   if (past && data.forearmDay(today)) root.append(button('Forearms for this day', () => go(`#train/${today}.forearms`), 'block'));
 }

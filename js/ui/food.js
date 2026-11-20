@@ -76,7 +76,7 @@ export function customSheet(today, prefill = {}) {
   const read = () => ({ name: name.value, servingLabel: serving.value, cal: nums.cal.value, p: nums.p.value, c: nums.c.value, f: nums.f.value });
   const valid = () => { if (!name.value.trim()) { toast('Enter a name'); return false; } return true; };
   const customMeal = mealSelect(state.meal);
-  const s = sheet('Add item', h('div', { class: 'stack' },
+  const s = sheet('Create item', h('div', { class: 'stack' },
     field('Name', name),
     field('Serving (what the numbers are for)', serving),
     h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), nums[m.key]))),
@@ -225,7 +225,7 @@ export function mealBreakdown(date, { editable = false, onAdd = null } = {}) {
     const items = logs.filter((l) => data.mealOf(l) === id);
     if (!items.length && !editable) return null;
     const t = data.totalsOf(items);
-    return h('section', { class: 'card meal', 'aria-label': label },
+    return h('section', { class: `card meal m-${id}`, 'aria-label': label },
       h('div', { class: `row meal-head m-${id}` }, h('h2', { class: 'card-title grow' }, `${MEAL_ICON[id] || ''} ${label}`), h('span', { class: 'num' }, `${fmt(t.cal)} cal`)),
       items.length ? h('div', { class: 'sub' }, pcf(t)) : null,
       items.length ? h('div', { class: 'list' }, items.map((l) => {
@@ -278,7 +278,7 @@ function loggedToday(date) {
     logs.length ? data.MEALS.map(([id, label]) => {
       const items = logs.filter((l) => data.mealOf(l) === id);
       if (!items.length) return null;
-      return h('div', { class: 'stack tight logged-meal' },
+      return h('div', { class: `stack tight logged-meal m-${id}` },
         h('div', { class: `row meal-head m-${id}` }, h('h3', { class: 'list-head grow' }, `${MEAL_ICON[id] || ''} ${label}`), h('span', { class: 'sub' }, `${fmt(data.totalsOf(items).cal)} cal`)),
         h('div', { class: 'list' }, items.map((l) => h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) },
           h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, `${fmt(l.cal)} cal`)),
@@ -307,7 +307,7 @@ export function renderFood(root, ctx) {
   const today = past || ctx.today;
   const addSection = h('section', { class: 'card', id: 'add-food', 'aria-label': 'Add food' },
     h('h2', { class: 'card-title' }, 'Add food'),
-    h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today)), button('Frequently used', () => frequentSheet(today))),
+    h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Frequently used', () => frequentSheet(today)), button('Create item', () => customSheet(today))),
     searchPanel(today));
   root.append(...[
     past ? header(`Food · ${nice(today)}`, 'Editing a past day', button('Back to today', () => ctx.go('#food'), 'ghost'))

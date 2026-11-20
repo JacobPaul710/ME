@@ -196,25 +196,18 @@ function magicCard(today) {
       h('div', { class: 'magic-bar' }, fill));
     return el;
   });
+  // Morning and Night start folded: just a yellow/green light. Tap to open or close.
   const section = (when, label, icon) => {
     const list = doses.filter((x) => x.when === when);
     if (!list.length) return null;
     const need = list.filter((x) => !x.optional);
-    const complete = need.length > 0 && need.every((x) => taken.has(x.key));
-    const morningDone = doses.filter((x) => x.when === 'morning' && !x.optional).every((x) => taken.has(x.key));
-    // Morning is open until it's done; then it folds and Night opens. Tap a folded one to open it.
-    const auto = when === 'morning' ? !complete : morningDone && !complete;
-    const open = opened[when] ?? auto;
-    const lastAt = list.filter((x) => taken.has(x.key)).map((x) => times[x.key]).filter(Boolean).pop();
-    const n = need.filter((x) => taken.has(x.key)).length;
-    if (!open) {
-      return h('button', { type: 'button', class: `magic-fold${complete ? ' done' : ''}`, onClick: () => { opened[when] = true; document.dispatchEvent(new CustomEvent('me:rerender')); } },
-        complete ? '✓ ' : `${icon} `, h('b', null, label), complete ? ` · ${n} of ${need.length}` : ` · ${need.length - n} to go`,
-        h('span', { class: 't' }, complete ? lastAt || '' : when === 'night' ? 'opens after Morning' : 'tap to open'));
-    }
-    return h('div', { class: 'magic-sec' },
-      h('button', { type: 'button', class: 'magic-sec-h', onClick: () => { opened[when] = false; document.dispatchEvent(new CustomEvent('me:rerender')); } },
-        `${icon} ${label}`, h('span', null, `${n} of ${need.length}`)),
+    const complete = need.every((x) => taken.has(x.key));
+    const open = !!opened[when];
+    const toggle = () => { opened[when] = !open; document.dispatchEvent(new CustomEvent('me:rerender')); };
+    const head = h('button', { type: 'button', class: `magic-fold${complete ? ' done' : ''}`, 'aria-expanded': open ? 'true' : 'false', onClick: toggle },
+      statusDot(complete), h('b', null, `${icon} ${label}`), h('span', { class: 't' }, open ? '▲' : '▼'));
+    if (!open) return head;
+    return h('div', { class: 'magic-sec' }, head,
       list.map((x) => {
         const on = taken.has(x.key);
         return h('div', { class: 'magic-row' },
@@ -222,12 +215,11 @@ function magicCard(today) {
           svg(WAND),
           h('button', { type: 'button', class: 'magic-name', onClick: () => magicTick(today, x) },
             `${x.sup.name}${x.sup.dose ? ` ${x.sup.dose}` : ''}`,
-            x.optional ? h('span', { class: 'opt' }, ` optional${x.timerHours ? ` · ${x.timerHours} h timer` : ''}`) : x.timerHours ? h('span', { class: 'opt' }, ` ${x.timerHours} h timer`) : null),
-          h('span', { class: 't' }, on && times[x.key] ? times[x.key] : ''));
+            x.optional ? h('span', { class: 'opt' }, ' optional') : null));
       }));
   };
   const card = h('section', { class: 'card magic', 'aria-label': 'Magic' },
-    h('div', { class: 'row' }, svg(HAT), h('h2', { class: 'card-title grow' }, 'Magic'), h('span', { class: 'magic-count' }, done >= req.length && req.length ? `${done} of ${req.length} ✓` : `${done} of ${req.length}`)),
+    h('div', { class: 'row' }, statusDot(req.length > 0 && done >= req.length), svg(HAT), h('h2', { class: 'card-title grow' }, 'Magic')),
     timerEls, section('morning', 'Morning', '☀️'), section('night', 'Night', '🌙'));
   // keep the timers ticking while the card is on screen
   if (timerEls.length) {
