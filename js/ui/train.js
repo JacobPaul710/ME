@@ -1,7 +1,7 @@
 import { h, fmt, svg } from './dom.js';
 import { skillUp } from '../celebrations.js';
 import { ICONS } from './character.js';
-import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
+import { button, card, header, light, checkbox, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
 import { nice, ago, iso, parse, addDays } from '../logic/dates.js';
 import { LIFTS } from '../logic/standards.js';
@@ -29,7 +29,7 @@ function lastWorkout(ex, st) {
     return h('div', { class: 'last-workout' }, h('span', { class: 'lw-label' }, 'Last workout: '), `${dayDate(st.last.date)} · ${s.minutes ?? '—'} min${s.miles ? `, ${s.miles} mi` : ''}`);
   }
   if (st.last) return h('div', { class: 'last-workout' }, h('span', { class: 'lw-label' }, 'Last workout: '), dayDate(st.last.date));
-  return h('div', { class: 'last-workout' }, ex.baseline ? 'Last workout: from your sheet' : 'No previous workout');
+  return h('div', { class: 'last-workout' }, 'No previous workout yet');
 }
 const dayDate = (d) => parse(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -173,7 +173,7 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
       await commit(row, { ...v, done: true, doneAt: new Date().toISOString() });
       quake();
       if (data.settings().voiceCheers) cheer();
-      if (!forearm && today >= iso()) startRest(data.settings().restSeconds || 90); // no timer for forearms or when editing a past day
+      if (!forearm && today >= iso() && data.settings().restOn) startRest(data.settings().restSeconds || 90); // no timer for forearms or when editing a past day
       // XP per skill for this set (like RuneScape's XP drops), plus any skill level-ups
       const after = data.skillInfo(iso());
       const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
@@ -188,7 +188,7 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
     const del = row.virtual ? h('span') : h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Remove set ${row.n}`, onClick: () => data.removeSet(row.id) }, '×');
     return h('div', { class: 'set-wrap' },
       h('div', { class: `set-row${forearm ? ' g3' : sides ? ' sides' : cardio ? '' : ' g3'}${row.done ? ' done' : ''}` },
-        light(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
+        checkbox(row.done, toggle, row.done ? `Set ${row.n} done. Tap to undo` : `Mark set ${row.n} done`), inputs, del),
       forearm ? (row.n === 4 ? h('div', { class: 'set-meta optional' }, 'Optional set · bonus XP') : null)
         : cardio ? null : h('div', { class: `set-meta${row.done && /Goal hit/.test(setMeta(ex, st, i, row)) ? ' hit' : ''}` }, setMeta(ex, st, i, row)));
   };
@@ -207,7 +207,7 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
   const real = !isVirtual;
   const required = forearm ? rows.filter((r) => r.n <= 3) : rows;
   const reqDone = real && required.length > 0 && required.every((r) => r.done);
-  const finished = forearm ? (real && rows.every((r) => r.done)) || (data.exComplete(ex.id, today) && rows.some((r) => r.done)) : reqDone;
+  const finished = (real && rows.every((r) => r.done)) || (data.exComplete(ex.id, today) && rows.some((r) => r.done));
   const key = `${ex.id}:${today}`;
   if (finished && !opened.has(key)) {
     const n = rows.filter((r) => r.done).length;
@@ -215,13 +215,13 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
       h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'),
       h('span', { class: 'grow' }, h('span', { class: 'item-name' }, ex.name), h('span', { class: 'sub block' }, `${n} set${n === 1 ? '' : 's'} done · tap to open`)));
   }
-  // Forearms: "Complete" is always there, so you can finish after any number of sets.
-  const completeBtn = forearm && !finished
-    ? button(`Complete ${ex.name}`, async () => {
+  // "Done" under the last set: finish the exercise after any number of sets.
+  const completeBtn = !finished && !cardio
+    ? button('Done', async () => {
       opened.delete(key);
       if (!rows.some((r) => r.done)) { toast('Mark at least one set done first'); return; }
       await data.setExComplete(ex.id, today, true);
-    }, 'primary block') : null;
+    }, 'primary block', { 'aria-label': `Done with ${ex.name}` }) : null;
   const el = card(
     tag ? h('div', { class: 'up-next' }, tag) : null,
     h('div', { class: 'row' },
@@ -260,6 +260,34 @@ function forearmsView(root, today, past, go) {
   if (resting) { root.append(h('div', { class: 'card ex-done static' }, h('span', { class: 'tick' }, '✓'), h('span', null, 'Resting forearms today'))); return; }
   if (!exs.length) { root.append(empty('No forearm exercises saved yet.')); return; }
   exs.forEach((e, i) => root.append(exerciseCard(e, 'Forearms', today, { forearm: true, tag: i === 0 ? 'Up next' : null, due: i === 0 })));
+}
+
+// "Push day done ✓": exercises, weight lifted, XP, rep goals reached, weight increases earned.
+function workoutSummary(dayType, exs, today) {
+  const sets = data.daySets(today).filter((x) => x.done && x.dayType === dayType);
+  const repsOf = (x) => (x.repsR != null || x.repsL != null ? (+x.repsR || 0) + (+x.repsL || 0) : +x.reps || 0);
+  const exDone = exs.filter((e) => sets.some((x) => x.exerciseId === e.id));
+  const lifted = sets.reduce((a, x) => a + (+x.weight || 0) * repsOf(x), 0);
+  const now = data.skillInfo(today), before = data.skillInfo(today, addDays(today, -1));
+  const xp = now.list.reduce((a, sk, i) => a + Math.max(0, sk.xp - before.list[i].xp), 0);
+  const goals = [], heavier = [];
+  for (const e of exDone) {
+    const st = data.exerciseStatus(e, today);
+    const mine = sets.filter((x) => x.exerciseId === e.id).sort((a, b) => a.n - b.n);
+    const hit = mine.filter((x, i) => { const g = st.sets[i] ? st.sets[i].goal : st.start; const r = x.repsR != null || x.repsL != null ? Math.min(+x.repsR || 0, +x.repsL || 0) : +x.reps || 0; return r >= g; }).length;
+    if (hit) goals.push(`${e.name}: ${hit} set${hit === 1 ? '' : 's'}`);
+    if (data.exerciseStatus(e, addDays(today, 1)).ready) heavier.push(e.name);
+  }
+  const n = new Set(data.allSetsDone().filter((x) => x.dayType === dayType && x.date <= today).map((x) => x.date)).size;
+  const line = (label, value) => h('div', { class: 'recap-line' }, h('span', { class: 'grow' }, label), h('span', { class: 'num' }, value));
+  return h('section', { class: 'card workout-done', 'aria-label': `${dayType} day done` },
+    h('h2', { class: 'card-title' }, `${dayType} day done ✓`),
+    line('Exercises done', String(exDone.length)),
+    line('Weight lifted', `${fmt(lifted)} lb`),
+    line('XP gained', `+${fmt(xp)}`),
+    line('Rep goals reached', goals.length ? goals.join(' · ') : 'None this time'),
+    line('Ready to go up in weight', heavier.length ? heavier.join(', ') : 'Not yet'),
+    h('p', { class: 'workout-done-msg' }, `${dayType} workout number ${n}. Discipline earns consistency. You're growing.`));
 }
 
 // The picker: tapping the Workout tab always lands here.
@@ -399,6 +427,8 @@ export function renderTrain(root, ctx) {
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
+  // Every exercise done: the summary card goes on top.
+  if (exs.length && root.querySelectorAll('.ex-done').length >= exs.length) root.querySelector('.page-head')?.after(workoutSummary(dayType, exs, today));
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
   if (past && data.forearmDay(today)) root.append(button('Forearms for this day', () => go(`#train/${today}.forearms`), 'block'));
 }

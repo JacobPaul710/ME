@@ -26,14 +26,23 @@ const sourceLabel = { usda: 'Basic foods', 'usda-online': 'USDA', off: 'Open Foo
 
 export function foodSheet(food, today) {
   const saved = (food.id && food.source && data.savedFoods().find((f) => f.id === food.id)) || data.findSaved(food);
-  const base = saved || food;
+  let base = saved || food;
+  if (base.baseGrams && !base.packageGrams && data.foodSize(base)) base = { ...base, packageGrams: data.foodSize(base) };
   const d = defaultAmount(base);
   const amount = numberInput(d.amount, { 'aria-label': 'Amount' });
-  const unitSel = h('select', { 'aria-label': 'Unit' }, units(base).map((u) => h('option', { value: u.id, selected: u.id === d.unit }, u.label)));
+  // Every weighed food can be logged as the whole item; if its size isn't known, you type it once.
+  const opts = units(base);
+  if (base.baseGrams && !opts.some((u) => u.id === 'package')) opts.splice(1, 0, { id: 'package', label: 'whole item (enter its size)' });
+  const unitSel = h('select', { 'aria-label': 'Unit' }, opts.map((u) => h('option', { value: u.id, selected: u.id === d.unit }, u.label)));
+  const sizeIn = numberInput(base.packageGrams || '', { 'aria-label': 'Whole item size in grams', placeholder: 'e.g. 425' });
+  const sizeField = field('Whole item weighs (grams, from the label)', sizeIn);
+  sizeField.hidden = !(unitSel.value === 'package' && !base.packageGrams);
+  const sized = () => (unitSel.value === 'package' && !base.packageGrams && +sizeIn.value > 0 ? { ...base, packageGrams: +sizeIn.value } : base);
   const mealSel = mealSelect(state.meal);
   const preview = h('p', { class: 'num-line' });
-  const draw = () => { preview.textContent = macroText(macrosFor(base, amount.value, unitSel.value)); };
+  const draw = () => { sizeField.hidden = !(unitSel.value === 'package' && !base.packageGrams); preview.textContent = macroText(macrosFor(sized(), amount.value, unitSel.value)); };
   amount.addEventListener('input', draw);
+  sizeIn.addEventListener('input', draw);
   unitSel.addEventListener('change', draw);
   draw();
 
@@ -42,6 +51,7 @@ export function foodSheet(food, today) {
     base.brand ? h('div', { class: 'sub' }, base.brand) : null,
     h('div', { class: 'sub' }, `${perLabel}: ${macroText(base)}`),
     h('div', { class: 'grid2' }, field('Amount', amount), field('Unit', unitSel)),
+    sizeField,
     field('Meal', mealSel),
     preview);
 
@@ -53,9 +63,13 @@ export function foodSheet(food, today) {
     button('Add', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
       if (!mealSel.value) { toast('Choose a meal first'); mealSel.focus(); return; }
+      if (unitSel.value === 'package' && !base.packageGrams) {
+        if (!(+sizeIn.value > 0)) { toast('Enter how many grams the whole item weighs'); sizeIn.focus(); return; }
+        await data.setFoodSize(base, +sizeIn.value); // remembered for next time
+      }
       state.meal = null;
       clearSearch();
-      await data.logFood(today, base, +amount.value, unitSel.value, mealSel.value);
+      await data.logFood(today, sized(), +amount.value, unitSel.value, mealSel.value);
       s.close();
       toast(`Added to ${mealName(mealSel.value)}`);
     }, 'primary block'),
@@ -220,7 +234,7 @@ export function mealBreakdown(date, { editable = false, onAdd = null } = {}) {
     if (!items.length && !editable) return null;
     const t = data.totalsOf(items);
     return h('section', { class: 'card meal', 'aria-label': label },
-      h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, label), h('span', { class: 'num' }, `${fmt(t.cal)} cal`)),
+      h('div', { class: `row meal-head m-${id}` }, h('h2', { class: 'card-title grow' }, `${MEAL_ICON[id] || ''} ${label}`), h('span', { class: 'num' }, `${fmt(t.cal)} cal`)),
       items.length ? h('div', { class: 'sub' }, pcf(t)) : null,
       items.length ? h('div', { class: 'list' }, items.map((l) => {
         const kids = [
@@ -273,7 +287,7 @@ function loggedToday(date) {
       const items = logs.filter((l) => data.mealOf(l) === id);
       if (!items.length) return null;
       return h('div', { class: 'stack tight logged-meal' },
-        h('div', { class: 'row' }, h('h3', { class: 'list-head grow' }, label), h('span', { class: 'sub' }, `${fmt(data.totalsOf(items).cal)} cal`)),
+        h('div', { class: `row meal-head m-${id}` }, h('h3', { class: 'list-head grow' }, `${MEAL_ICON[id] || ''} ${label}`), h('span', { class: 'sub' }, `${fmt(data.totalsOf(items).cal)} cal`)),
         h('div', { class: 'list' }, items.map((l) => h('button', { type: 'button', class: 'item item-main meal-item', onClick: () => editLogSheet(l) },
           h('span', { class: 'meal-item-top' }, h('span', { class: 'item-name' }, l.name), h('span', { class: 'num' }, `${fmt(l.cal)} cal`)),
           h('span', { class: 'sub' }, `${[l.brand, l.amountLabel].filter(Boolean).join(' · ')} · ${pcf(l)}`)))));
@@ -309,6 +323,9 @@ function supplementsCard(date) {
           h('span', { class: 'sub' }, [x.sup.dose, done && times[x.key] ? `taken ${times[x.key]}` : null].filter(Boolean).join(' · '))));
     })));
 }
+
+// Each meal gets its own colour and icon.
+const MEAL_ICON = { breakfast: '☀️', lunch: '🥪', dinner: '🍽️', snacks: '🍎' };
 
 export const setFoodMeal = (meal) => { state.meal = meal; };
 

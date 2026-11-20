@@ -196,7 +196,10 @@ function restCard() {
   const rest = h('select', { 'aria-label': 'Rest between sets' },
     REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
   rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
-  return card(h('h2', { class: 'card-title' }, 'Rest between sets'), rest);
+  const on = h('input', { type: 'checkbox', checked: !!data.settings().restOn, 'aria-label': 'Rest timer on' });
+  on.addEventListener('change', () => data.saveSettings({ ...data.settings(), restOn: on.checked }));
+  return card(h('h2', { class: 'card-title' }, 'Rest between sets'),
+    h('label', { class: 'row check' }, on, h('span', null, 'Rest timer on (it only alerts inside the app)')), rest);
 }
 
 export function renderSettings(root, ctx) {

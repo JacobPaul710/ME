@@ -17,6 +17,11 @@ export function light(on, onClick, label) {
   return h('button', { type: 'button', class: `light${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false', 'aria-label': label, onClick });
 }
 
+// Set check box (left of each set).
+export function checkbox(on, onClick, label) {
+  return h('button', { type: 'button', class: `setcheck${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false', 'aria-label': label, onClick }, on ? '✓' : '');
+}
+
 export function statusDot(on) { return h('span', { class: `dot${on ? ' on' : ''}`, 'aria-hidden': 'true' }); }
 
 export function segmented(options, value, onChange) {

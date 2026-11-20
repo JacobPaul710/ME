@@ -518,3 +518,19 @@ html, body { overscroll-behavior-x: none; }
 .scan-wrap { position: relative; overflow: hidden; border-radius: 12px; }
 .scan-wrap .scan-video { display: block; width: 100%; border-radius: 12px; }
 .scan-aim { position: absolute; left: 10%; right: 10%; top: 32.5%; height: 35%; border: 3px solid #e0a92e; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); pointer-events: none; }
+/* Set check box */
+.setcheck { width: 40px; height: 40px; margin: 2px; border-radius: 9px; border: 3px solid var(--text); background: transparent; color: #fff; font-size: 22px; font-weight: 900; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.setcheck.on { background: var(--good, #3f8a3a); border-color: var(--good, #3f8a3a); }
+.workout-done { border: 2px solid var(--good, #3f8a3a); }
+.workout-done .card-title { color: var(--good, #3f8a3a); }
+.workout-done-msg { margin: 8px 0 0; font-style: italic; }
+/* Meals: coloured header with an icon */
+.meal-head { border-radius: 10px; padding: 6px 10px; margin-top: 6px; }
+.meal-head .list-head, .meal-head .card-title { margin: 0; }
+.meal-head.m-breakfast { background: #f6dcae; }
+.meal-head.m-lunch { background: #cfe3f0; }
+.meal-head.m-dinner { background: #e6cfe8; }
+.meal-head.m-snacks { background: #d6ead0; }
+html[data-theme="stone"] .meal-head, html[data-theme="wood"] .meal-head { color: #2c2117; }
+/* Your logged food glows, so it never looks like a button */
+.meal-item { box-shadow: 0 0 0 2px rgba(224, 169, 46, 0.5), 0 0 12px rgba(224, 169, 46, 0.4); border-color: #e0a92e !important; }

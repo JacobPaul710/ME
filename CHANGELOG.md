@@ -3,6 +3,15 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.69.0 (ME patch 20)
+- 3.69.0 New app logo: walnut dumbbell with ME.
+- 3.68.0 Every weighed food has a "whole item" choice; if its size isn't known you type it once and it's remembered.
+- 3.67.0 Meals have coloured headers with icons; your logged food glows so it never looks like a button.
+- 3.66.0 Workout summary card when every exercise is done: exercises, weight lifted, XP, rep goals reached, weight increases earned, and "Push workout number N…".
+- 3.65.0 A check box on the left of each set, and a "Done" button under the last set of every exercise.
+- 3.64.3 Rest timer is off by default (switch in Settings).
+- 3.64.2 Starting fresh: rep goals and "N of 4" counts only count workouts logged in the app (the spreadsheet only fills in starting weights and reps).
+
 ## 3.64.1 (ME patch 19)
 - 3.64.1 When rest ends and you're on another tab, a message tells you it's time for your next set.
 - 3.64.0 Barcode scanner: sharper camera, continuous focus, reads a zoomed strip in the aim box about 10 times a second, and a flashlight button where the phone allows it.

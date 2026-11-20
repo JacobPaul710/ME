@@ -46,8 +46,8 @@ export function evaluateSets(ex, sess, needed = 4) {
     weight: b.weight ?? null,
     reps: b.reps ?? (b.repsR != null ? Math.min(+b.repsR || 0, +b.repsL || 0) : null),
     repsR: b.repsR ?? null, repsL: b.repsL ?? null,
-    goal: b.goal ?? (b.reps != null ? Math.min(top, Math.max(start, +b.reps + 1)) : start),
-    hits: Math.min(needed, b.hits || 0), change: b.change ?? null,
+    // start fresh in the app: the sheet only fills in starting numbers, not goals or counts
+    goal: start, hits: 0, change: null,
   }));
   let lastDate = base ? base.date : null;
   // Goals you typed in yourself (ex.goals = { setIndex: { goal, date } }) take over from that date.

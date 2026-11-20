@@ -125,6 +125,11 @@ export const forearmDay = (date) => allSets().some((s) => s.date === date && s.d
 export const forearmRest = (date) => !!store.get('farest:' + date);
 export const setForearmRest = (date, on) => (on ? store.put('farest', 'farest:' + date, { date }) : store.remove('farest:' + date));
 // Everything logged for a day's workout and check-in (food and weigh-in are kept).
+// "Whole item" sizes you typed in yourself, remembered per food.
+const sizeKey = (f) => 'foodsize:' + String(`${f.brand || ''} ${f.name}`).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
+export const foodSize = (f) => (store.get(sizeKey(f)) || {}).grams || null;
+export const setFoodSize = (f, grams) => store.put('foodsize', sizeKey(f), { grams });
+export const allSetsDone = () => allSets().filter((s) => s.done);
 export const daySets = (date) => allSets().filter((s) => s.date === date);
 export async function clearDay(date) {
   for (const s of daySets(date)) await store.remove(s.id);
