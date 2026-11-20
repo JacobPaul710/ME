@@ -31,11 +31,26 @@ function fireworks(big) {
   return box;
 }
 
-function popup({ big = false, kind = '', label, num, title, text, source, button = 'Keep going' }) {
+// Pop-ups wait their turn: if one is open, the next shows after you tap OK.
+const waiting = [];
+let handing = false; // the next pop-up is about to show
+window.addEventListener('tracker-popup-closed', () => {
+  const next = waiting.shift();
+  if (!next) return;
+  handing = true;
+  setTimeout(() => { handing = false; next(); }, 250);
+});
+function popup(opts) {
+  if (handing || document.querySelector('.celebrate')) { waiting.push(() => { opts.sound?.(); showPopup(opts); }); return; }
+  opts.sound?.();
+  showPopup(opts);
+}
+function showPopup({ big = false, kind = '', label, num, title, text, source, button = 'Keep going', icon = null }) {
   const wrap = h('div', { class: `celebrate${big ? ' big' : ''} ${kind}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': label },
     fireworks(big),
     h('div', { class: 'celebrate-card' },
       h('div', { class: 'celebrate-shine', 'aria-hidden': 'true' }),
+      icon ? h('div', { class: 'celebrate-icon', 'aria-hidden': 'true' }, icon) : null,
       num != null ? h('div', { class: 'celebrate-num' }, String(num)) : null,
       h('div', { class: 'celebrate-title' }, title),
       h('p', { class: 'sub' }, text),
@@ -57,11 +72,14 @@ export function evolved(name, form, level) {
   popup({ big: true, kind: 'evolve', label: `${name} evolved`, num: level, title: `Your ${name} evolved!`, text: `Combat level ${level} unlocked its ${form} form. Go see it on the Character tab.` });
 }
 
+// Combat level: the grand one (fireworks, fanfare). Tap OK to close.
 export function levelUp(level) {
-  stopAudio();
-  sfx.levelUp();
-  voice('level-up');
-  popup({ big: level % 10 === 0 || level === MAX, label: `Combat level ${level}`, num: level, title: 'Combat level up!', text: level === MAX ? `Combat level ${MAX}. Maxed.` : `You reached combat level ${level}.` });
+  popup({ sound: () => { stopAudio(); sfx.levelUp(); voice('level-up'); }, big: true, kind: 'combat', label: `Combat level ${level}`, num: level, title: 'Combat level up!', text: level === MAX ? `Combat level ${MAX}. Maxed.` : `You reached combat level ${level}.`, button: 'OK' });
+}
+
+// A skill level: smaller and quicker. Tap OK to close.
+export function skillUp(name, level, icon) {
+  popup({ sound: () => { sfx.skillUp(); }, kind: 'skill', label: `${name} level ${level}`, title: `${name} level ${level}!`, text: `You advanced a ${name} level.`, button: 'OK', icon });
 }
 
 export function tierUnlocked(tier) {

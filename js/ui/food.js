@@ -1,6 +1,8 @@
-import { h, fmt } from './dom.js';
+import { h, fmt, svg } from './dom.js';
+import { skillUp } from '../celebrations.js';
+import { ICONS } from './character.js';
 import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light } from './components.js';
-import { nice, iso } from '../logic/dates.js';
+import { nice, iso, addDays } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
 import { search, norm } from '../logic/foods.js';
 import { usdaFoods, searchOnline, lookupBarcode } from '../core/foodapi.js';
@@ -92,10 +94,11 @@ export function customSheet(today, prefill = {}) {
 
 function scanSheet(today) {
   const video = h('video', { class: 'scan-video', 'aria-label': 'Camera' });
+  const frame = h('div', { class: 'scan-wrap' }, video, h('div', { class: 'scan-aim', 'aria-hidden': 'true' }));
   const msg = h('p', { class: 'sub' }, 'Starting camera…');
   const extra = h('div', { class: 'stack' });
   let stop = null;
-  const s = sheet('Scan barcode', h('div', { class: 'stack' }, video, msg, extra), [], { onClose: () => stop && stop() });
+  const s = sheet('Scan barcode', h('div', { class: 'stack' }, frame, msg, extra), [], { onClose: () => stop && stop() });
   if (!navigator.onLine) { msg.textContent = 'Scanning needs internet. Your Frequently used foods work offline.'; video.remove(); return; }
   startScan(video, async (code) => {
     msg.textContent = `Looking up ${code}…`;
@@ -107,7 +110,13 @@ function scanSheet(today) {
       msg.textContent = e.message;
     }
     extra.replaceChildren(button('Add it as a new item', () => { s.close(); customSheet(today); }, 'block'));
-  }).then((fn) => { stop = fn; if (!s.panel.isConnected) fn(); else msg.textContent = 'Point the camera at the barcode.'; })
+  }).then((cam) => {
+    stop = cam.stop;
+    if (!s.panel.isConnected) { cam.stop(); return; }
+    msg.textContent = 'Line the barcode up inside the box.';
+    let lit = false;
+    extra.replaceChildren(button('Flashlight', async () => { lit = !lit; if (!(await cam.torch(lit))) { lit = false; toast("This phone's browser can't turn on the light"); } }, 'ghost block'));
+  })
     .catch((e) => {
       video.remove();
       msg.textContent = e && e.name === 'NotAllowedError'
@@ -273,28 +282,44 @@ function loggedToday(date) {
 
 // Daily supplement check-in (set the list in ☰ Settings → Supplements).
 function supplementsCard(date) {
-  const list = data.supplements();
+  const list = data.suppDoses();
   if (!list.length) return null;
   const taken = new Set(data.suppTaken(date));
-  const n = list.filter((x) => taken.has(x.id)).length;
+  const times = data.suppTimes(date);
+  const n = list.filter((x) => taken.has(x.key)).length;
   // Check one off and show the Herblore XP it earned (or lost, when unchecked).
   const tick = async (x) => {
     const herb = () => data.skillInfo(iso()).list.find((sk) => sk.id === 'herblore');
     const before = herb();
-    await data.toggleSupp(date, x.id);
+    await data.toggleSupp(date, x.key);
     const after = herb();
     const d = after.xp - before.xp;
     if (d) toast(`${d > 0 ? '+' : '−'}${fmt(Math.abs(d), 0)} Herblore XP${after.level > before.level ? ` · Herblore level ${after.level}!` : ''}`);
+    if (after.level > before.level) skillUp('Herblore', after.level, svg(ICONS.herblore));
   };
   return h('section', { class: 'card', 'aria-label': 'Supplements' },
     h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Supplements'), h('span', { class: 'sub' }, `${n} of ${list.length}`)),
-    h('div', { class: 'list' }, list.map((x) => h('div', { class: 'item' },
-      light(taken.has(x.id), () => tick(x), `${x.name} ${taken.has(x.id) ? 'taken' : 'not taken'}`),
-      h('button', { type: 'button', class: 'item-main', onClick: () => tick(x) },
-        h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, x.dose || ''))))));
+    h('div', { class: 'list' }, list.map((x) => {
+      const name = x.of > 1 ? `${x.sup.name} · dose ${x.n} of ${x.of}` : x.sup.name;
+      const done = taken.has(x.key);
+      return h('div', { class: 'item' },
+        light(done, () => tick(x), `${name} ${done ? 'taken' : 'not taken'}`),
+        h('button', { type: 'button', class: 'item-main', onClick: () => tick(x) },
+          h('span', { class: 'item-name' }, name),
+          h('span', { class: 'sub' }, [x.sup.dose, done && times[x.key] ? `taken ${times[x.key]}` : null].filter(Boolean).join(' · '))));
+    })));
 }
 
 export const setFoodMeal = (meal) => { state.meal = meal; };
+
+// Add food you forgot on an earlier day.
+function otherDaySheet(ctx) {
+  const d = h('input', { type: 'date', max: ctx.today, value: addDays(ctx.today, -1), 'aria-label': 'Day' });
+  const s = sheet('Food for another day', field('Day', d), [button('Open that day', () => {
+    if (!d.value || d.value > ctx.today) { toast('Pick a day up to today'); return; }
+    s.close(); ctx.go(d.value === ctx.today ? '#food' : `#food/${d.value}`);
+  }, 'primary block')]);
+}
 
 // The Food tab is for today, or for a past day opened from History (#food/2026-11-16).
 export function renderFood(root, ctx) {
@@ -305,7 +330,8 @@ export function renderFood(root, ctx) {
     h('div', { class: 'grid3' }, button('Scan barcode', () => scanSheet(today)), button('Add item', () => customSheet(today)), button('Frequently used', () => frequentSheet(today))),
     searchPanel(today));
   root.append(...[
-    past ? header(`Food · ${nice(today)}`, 'Editing a past day', button('Back to today', () => ctx.go('#food'), 'ghost')) : header('Food', nice(today)),
+    past ? header(`Food · ${nice(today)}`, 'Editing a past day', button('Back to today', () => ctx.go('#food'), 'ghost'))
+      : header('Food', nice(today), button('Other day', () => otherDaySheet(ctx), 'ghost')),
     summaryCard(today),
     addSection,
     past ? mealBreakdown(today, { editable: true, onAdd: (meal) => { state.meal = meal; ctx.rerender(); document.querySelector('#add-food input[type="search"]')?.focus(); } }) : loggedToday(today),

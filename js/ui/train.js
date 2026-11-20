@@ -1,4 +1,6 @@
-import { h, fmt } from './dom.js';
+import { h, fmt, svg } from './dom.js';
+import { skillUp } from '../celebrations.js';
+import { ICONS } from './character.js';
 import { button, card, header, light, sheet, field, numberInput, toast, segmented, empty, confirmSheet } from './components.js';
 import { pickDayType } from './today.js';
 import { nice, ago, iso, parse, addDays } from '../logic/dates.js';
@@ -36,7 +38,7 @@ const dayDate = (d) => parse(d).toLocaleDateString(undefined, { weekday: 'short'
 function setMeta(ex, st, i, row) {
   const s = st.sets[i];
   const goal = s ? s.goal : st.start;
-  let hits = s ? s.hits : 0;
+  let hits = Math.min(st.needed, s ? s.hits : 0); // never more than 4 of 4
   const reps = row && row.done ? (row.repsR != null || row.repsL != null ? Math.min(+row.repsR || 0, +row.repsL || 0) : +row.reps || 0) : null;
   const hitToday = reps != null && reps >= goal;
   if (hitToday) hits = Math.min(st.needed, hits + 1);
@@ -176,6 +178,8 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
       const after = data.skillInfo(iso());
       const gains = after.list.map((s, i) => ({ s, d: s.xp - before.list[i].xp, up: s.level > before.list[i].level })).filter((g) => g.d > 0);
       const ups = gains.filter((g) => g.up).map((g) => `${g.s.name} level ${g.s.level}!`);
+      for (const g of gains.filter((x) => x.up)) skillUp(g.s.name, g.s.level, svg(ICONS[g.s.id]));
+      if (after.combat > before.combat) document.dispatchEvent(new CustomEvent('me:check')); // combat pop-up
       const hits = st.sets[i] ? st.sets[i].hits : 0;
       const goalMsg = hitGoal ? (hits + 1 >= st.needed && goal < st.top ? `Goal hit! ${hits + 1} of ${st.needed}: goal goes up to ${goal + 1} next time.` : `Goal hit! ${Math.min(hits + 1, st.needed)} of ${st.needed} workouts.`) : null;
       const xp = [...gains.map((g) => `+${fmt(g.d, 0)} ${g.s.name} XP`), ...ups].join(' · ');

@@ -26,6 +26,7 @@ export function editDaySheet(date, go) {
   const now = st.kind === 'workout' ? `${st.dayType} workout` : { rest: 'Rest day', off: 'Off day', missed: 'Not checked in', today: 'Not checked in yet' }[st.kind];
   const s = sheet(nice(date), h('div', { class: 'stack' },
     h('p', { class: 'sub', style: 'margin:0' }, `Now: ${now}`),
+    button('Food for this day', () => { s.close(); go(`#food/${date}`); }, 'block'),
     button(st.kind === 'workout' ? 'Open this workout' : 'Log a workout', () => {
       s.close();
       if (st.kind === 'workout') go(date === iso() ? '#train' : `#train/${date}`);
@@ -225,6 +226,5 @@ export function renderToday(root, ctx) {
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
     checkinCard(today, go),
     weighCard(today, go),
-    gearCard(today),
     foodCard(today, go)].filter(Boolean));
 }

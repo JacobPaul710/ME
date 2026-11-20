@@ -3,6 +3,17 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.64.1 (ME patch 19)
+- 3.64.1 When rest ends and you're on another tab, a message tells you it's time for your next set.
+- 3.64.0 Barcode scanner: sharper camera, continuous focus, reads a zoomed strip in the aim box about 10 times a second, and a flashlight button where the phone allows it.
+- 3.63.1 Gear is in the icebox: no gear card on Today and no gear pop-ups; the knight wears plain clothes.
+- 3.63.0 Level-up pop-ups you tap OK to close: a grand one for combat levels and a smaller one for each skill level. Pop-ups wait their turn.
+- 3.62.0 Supplements can be taken more than once a day, each dose its own check-off with the time you took it.
+- 3.61.0 Food units: count by the piece whenever the serving is a count (cookies, nuggets…), "whole can / package" when the size is known, cups from the label, and "swallows" (about 25 ml) for drinks.
+- 3.60.0 Add food to an earlier day: "Other day" on the Food tab, or "Food for this day" on any calendar day.
+- 3.59.0 The Workout tab takes you back to the workout you're doing (the picker only when you haven't picked one).
+- 3.58.1 "N of 4 workouts until rep increase" can no longer go past 4.
+
 ## 3.58.0 (ME patch 18)
 - 3.58.0 Backup in Settings: download all your data to a file and restore from it (updates never erase data; this is an extra copy).
 - 3.57.0 Food: no "Adding to" row; you choose the meal for each food when you add it (nothing pre-picked). Logged today is grouped by meal.

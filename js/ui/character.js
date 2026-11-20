@@ -174,7 +174,7 @@ export function renderCharacter(root, ctx) {
   const gear = data.gearInfo(today);
   const streak = data.streakInfo(today);
   const skills = data.skillInfo(today);
-  const tier = gear.current;
+  const tier = null; // gear tiers are in the icebox for now
   const ch = data.activeChar();
   const kind = ch.kind === 'knight' ? 'knight' : 'monster';
   const mon = monsterById(ch.monster);

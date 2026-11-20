@@ -157,11 +157,12 @@ const newId = () => 'sp' + Date.now().toString(36) + Math.random().toString(36).
 function editSupplement(item) {
   const list = data.supplements();
   const name = h('input', { type: 'text', value: item?.name || '', placeholder: 'e.g. Creatine' });
-  const dose = h('input', { type: 'text', value: item?.dose || '', placeholder: 'e.g. 5 g' });
-  const s = sheet(item ? 'Edit supplement' : 'Other supplement', h('div', { class: 'stack' }, field('Name', name), field('Amount per day', dose)), [
+  const dose = h('input', { type: 'text', value: item?.dose || '', placeholder: 'e.g. 2.5 g' });
+  const times = h('select', null, [1, 2, 3, 4].map((n) => h('option', { value: String(n), selected: n === (+item?.times || 1) }, n === 1 ? 'Once a day' : `${n} times a day (separate check-offs)`)));
+  const s = sheet(item ? 'Edit supplement' : 'Other supplement', h('div', { class: 'stack' }, field('Name', name), field('Amount each time', dose), field('How often', times)), [
     button('Save', async () => {
       if (!name.value.trim()) { name.focus(); return; }
-      const rec = { id: item?.id || newId(), name: name.value.trim(), dose: dose.value.trim() };
+      const rec = { ...(item || {}), id: item?.id || newId(), name: name.value.trim(), dose: dose.value.trim(), times: +times.value };
       await data.setSupplements(item ? list.map((x) => (x.id === item.id ? rec : x)) : [...list, rec]);
       s.close();
     }, 'primary block'),
@@ -186,7 +187,7 @@ function supplementsCard() {
   return card(h('h2', { class: 'card-title' }, 'Supplements'),
     h('p', { class: 'sub', style: 'margin:0' }, 'Check them off each day on the Food tab. Each one levels up Herblore.'),
     list.length ? h('div', { class: 'list' }, list.map((x) => h('button', { type: 'button', class: 'item item-main', 'aria-label': `Edit ${x.name}`, onClick: () => editSupplement(x) },
-      h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, x.dose || '')))) : null,
+      h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, [x.dose, +x.times > 1 ? `${x.times}× a day` : null].filter(Boolean).join(' · '))))) : null,
     button('Add supplement', addSupplementSheet, 'block'));
 }
 

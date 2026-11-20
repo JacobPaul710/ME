@@ -3,7 +3,7 @@ import { fromOFF, fromUSDA, fromFDC, looksRight, dataScore, norm } from '../logi
 import { FDC } from '../config.js';
 
 const OFF = 'https://world.openfoodfacts.org';
-const FIELDS = 'code,product_name,brands,nutriments,serving_size,serving_quantity';
+const FIELDS = 'code,product_name,brands,nutriments,serving_size,serving_quantity,product_quantity,quantity';
 
 // Give up after 10 s so a weak signal never leaves the screen stuck.
 async function get(url) {

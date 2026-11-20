@@ -502,3 +502,19 @@ html, body { overscroll-behavior-x: none; }
 /* Weigh-in card: the whole card is the button */
 .weigh-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .weigh-card .row { pointer-events: none; }
+/* Combat level-up: the grand one */
+.celebrate.combat .celebrate-card { background: radial-gradient(circle at 50% 25%, #3a2a12, #1d140c); color: #ffe9a6; border: 3px solid #e0a92e; box-shadow: 0 0 40px rgba(224, 169, 46, 0.7); }
+.celebrate.combat .celebrate-num { font-size: 72px; color: #ffd23f; text-shadow: 0 4px 0 #000; font-family: 'Press Start 2P', Georgia, serif; }
+.celebrate.combat .celebrate-title { letter-spacing: 0.12em; text-transform: uppercase; color: #ffe9a6; }
+.celebrate.combat .sub { color: #e8d9a8; }
+/* Skill level-up: smaller, darker stone card */
+.celebrate.skill { background: rgba(0, 0, 0, 0.45); }
+.celebrate.skill .fireworks { display: none; }
+.celebrate.skill .celebrate-card { max-width: 300px; padding: 18px 16px 14px; background: #3a3128; color: #f1e6d0; border: 2px solid #1a130c; box-shadow: none; }
+.celebrate.skill .celebrate-title { color: #ffff00; font-size: 20px; text-shadow: 1px 1px 0 #000; }
+.celebrate.skill .sub { color: #cbbfa8; }
+.celebrate-icon svg { width: 44px; height: 44px; }
+/* Scanner: aim box over the camera */
+.scan-wrap { position: relative; overflow: hidden; border-radius: 12px; }
+.scan-wrap .scan-video { display: block; width: 100%; border-radius: 12px; }
+.scan-aim { position: absolute; left: 10%; right: 10%; top: 32.5%; height: 35%; border: 3px solid #e0a92e; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); pointer-events: none; }

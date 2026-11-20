@@ -1,3 +1,4 @@
+import { toast } from './components.js';
 // Rest timer between sets: a bar above the tabs that counts down after each set.
 import { h } from './dom.js';
 import { sfx } from '../core/sfx.js';
@@ -33,6 +34,7 @@ export function startRest(seconds) {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     bar.classList.add('over');
     label.textContent = 'Rest over: next set!';
+    if (!location.hash.startsWith('#train')) toast('Rest over: time for your next set!'); // you're on another tab
     time.textContent = '';
     const b = bar;
     setTimeout(() => { if (bar === b) stopRest(); }, 5000);

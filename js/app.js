@@ -39,10 +39,22 @@ const SCREENS = {
 // Settings live in a menu that slides in when you swipe in from the left edge of the screen.
 let menuOpen = false;
 
+// The last workout page you were on today (#train or #train/forearms), so the tab can take you back.
+let lastTrain = null;
+function lastWorkout() {
+  if (lastTrain && lastTrain.day === iso()) return lastTrain.hash;
+  return '#train'; // shows today's workout if one is picked, otherwise the picker
+}
+function rememberTrain() {
+  const h = location.hash;
+  if (h === '#train' || h === '#train/forearms') lastTrain = { hash: h, day: iso() };
+}
+
 // Move between screens without adding browser history, so an edge swipe never "goes back a page".
 function navigate(hash) {
   if (location.hash === hash) { render(); return; }
   history.replaceState(null, '', hash);
+  rememberTrain();
   closeAllSheets();
   if (!hash.startsWith('#settings')) closeMenu();
   render();
@@ -143,8 +155,8 @@ function drawTabs() {
     const a = e.target.closest('a[href^="#"]');
     if (!a) return;
     e.preventDefault();
-    // the Workout tab always opens the workout picker
-    navigate(a.getAttribute('href') === '#train' ? '#train/pick' : a.getAttribute('href'));
+    // the Workout tab goes back to the workout you're doing (or the picker if you haven't picked one)
+    navigate(a.getAttribute('href') === '#train' ? lastWorkout() : a.getAttribute('href'));
   };
 }
 
@@ -161,22 +173,17 @@ function checkMilestone() {
     return;
   }
   const L = data.skillInfo(today).combat;
-  const seen = data.combatSeen();
+  const seen = data.combatSeen() || 3; // everyone starts at combat level 3
   if (L > seen) {
     data.setCombatSeen(L);
-    if (seen > 0) {
+    {
       // a monster that reaches a new form gets an evolution pop-up instead
       const ch = data.activeChar();
       if (ch.kind !== 'knight' && formIndex(L) > formIndex(seen)) { evolved(ch.name || monsterById(ch.monster).name, FORMS[formIndex(L)].name, L); return; }
       levelUp(L); return;
-    } // first run: just remember the level
+    }
   }
-  const g = data.gearInfo(today);
-  const tier = g.unlocked.find((t) => !data.tierShown(t.id));
-  if (tier) {
-    data.markTier(tier.id);
-    tierUnlocked(tier);
-  }
+  // Gear tiers are in the icebox for now (no gear pop-ups).
 }
 
 let renderQueued = false, localChange = false;
@@ -224,6 +231,7 @@ function doSignOut() {
 window.addEventListener('hashchange', () => { closeAllSheets(); if (!location.hash.startsWith('#settings')) closeMenu(); render(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 document.addEventListener('me:rerender', () => render());
+document.addEventListener('me:check', () => checkMilestone());
 // iPhone keyboard: lift pop-up sheets above it so the box you're typing in stays visible.
 if (window.visualViewport) {
   const kb = () => document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(innerHeight - visualViewport.height - visualViewport.offsetTop))}px`);

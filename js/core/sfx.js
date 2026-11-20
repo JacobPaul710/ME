@@ -30,6 +30,7 @@ export const sfx = {
   tier() { [196, 247, 294, 392].forEach((f) => tone(f, 0, 1.4, { type: 'sawtooth', gain: 0.05 })); tone(784, 0.25, 1.0); },
   milestone() { tone(220, 0, 0.5, { type: 'sawtooth', gain: 0.07 }); tone(330, 0.3, 0.9, { type: 'sawtooth', gain: 0.08 }); },
   restDone() { tone(880, 0, 0.25); tone(880, 0.3, 0.4); },
+  skillUp() { tone(784, 0, 0.18); tone(1047, 0.14, 0.35); },
 };
 
 // Voice clips: put files in audio/voice and list them in audio/voice/list.json,

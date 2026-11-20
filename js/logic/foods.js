@@ -25,6 +25,7 @@ export function fromOFF(prod) {
     baseGrams: 100, baseLabel: '100 g',
     cal: r0(+kcal), p: r1(+n.proteins_100g || 0), c: r1(+n.carbohydrates_100g || 0), f: r1(+n.fat_100g || 0),
     servingLabel: prod.serving_size || null, servingGrams: sq > 0 ? sq : null,
+    packageGrams: +prod.product_quantity > 0 && /g|ml/i.test(prod.quantity || 'g') ? +prod.product_quantity : null,
   };
 }
 
@@ -53,6 +54,7 @@ export function fromFDC(item) {
     baseGrams: 100, baseLabel: '100 g',
     cal: r0(cal), p: r1(get('p') || 0), c: r1(get('c') || 0), f: r1(get('f') || 0),
     servingLabel, servingGrams,
+    packageGrams: (() => { const m = String(item.packageWeight || '').match(/([\d.]+)\s*(g|ml)\b/i); return m ? +m[1] : null; })(),
   };
 }
 const titleCase = (s) => (s === s.toUpperCase() ? s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()) : s);
