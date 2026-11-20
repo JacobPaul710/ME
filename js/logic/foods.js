@@ -25,7 +25,13 @@ export function fromOFF(prod) {
     baseGrams: 100, baseLabel: '100 g',
     cal: r0(+kcal), p: r1(+n.proteins_100g || 0), c: r1(+n.carbohydrates_100g || 0), f: r1(+n.fat_100g || 0),
     servingLabel: prod.serving_size || null, servingGrams: sq > 0 ? sq : null,
-    packageGrams: +prod.product_quantity > 0 && /g|ml/i.test(prod.quantity || 'g') ? +prod.product_quantity : null,
+    packageGrams: (() => {
+      if (+prod.product_quantity > 0 && !/oz|lb/i.test(prod.product_quantity_unit || '')) return +prod.product_quantity;
+      const m = String(prod.quantity || '').match(/([\d.]+)\s*(g|ml)\b/i);
+      if (m) return +m[1];
+      const oz = String(prod.quantity || '').match(/([\d.]+)\s*(fl\.?\s*)?oz\b/i);
+      return oz ? Math.round(+oz[1] * (oz[2] ? 29.57 : 28.35)) : null;
+    })(),
   };
 }
 

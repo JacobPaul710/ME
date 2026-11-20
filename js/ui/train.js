@@ -207,7 +207,8 @@ function exerciseCard(ex, dayType, today, { forearm = false, tag = null, due = f
   const real = !isVirtual;
   const required = forearm ? rows.filter((r) => r.n <= 3) : rows;
   const reqDone = real && required.length > 0 && required.every((r) => r.done);
-  const finished = (real && rows.every((r) => r.done)) || (data.exComplete(ex.id, today) && rows.some((r) => r.done));
+  // An exercise closes only when you tap Done (after any number of sets).
+  const finished = real && data.exComplete(ex.id, today) && rows.some((r) => r.done);
   const key = `${ex.id}:${today}`;
   if (finished && !opened.has(key)) {
     const n = rows.filter((r) => r.done).length;

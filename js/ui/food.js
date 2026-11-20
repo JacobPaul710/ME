@@ -32,17 +32,14 @@ export function foodSheet(food, today) {
   const amount = numberInput(d.amount, { 'aria-label': 'Amount' });
   // Every weighed food can be logged as the whole item; if its size isn't known, you type it once.
   const opts = units(base);
-  if (base.baseGrams && !opts.some((u) => u.id === 'package')) opts.splice(1, 0, { id: 'package', label: 'whole item (enter its size)' });
+  // Size unknown: the whole item is taken as one serving, so you never have to type a weight.
+  if (base.baseGrams && base.servingGrams && !opts.some((u) => u.id === 'package')) { base = { ...base, packageGrams: base.servingGrams }; opts.splice(1, 0, { id: 'package', label: `whole item (${Math.round(base.servingGrams)} g)`, grams: base.servingGrams }); }
   const unitSel = h('select', { 'aria-label': 'Unit' }, opts.map((u) => h('option', { value: u.id, selected: u.id === d.unit }, u.label)));
-  const sizeIn = numberInput(base.packageGrams || '', { 'aria-label': 'Whole item size in grams', placeholder: 'e.g. 425' });
-  const sizeField = field('Whole item weighs (grams, from the label)', sizeIn);
-  sizeField.hidden = !(unitSel.value === 'package' && !base.packageGrams);
-  const sized = () => (unitSel.value === 'package' && !base.packageGrams && +sizeIn.value > 0 ? { ...base, packageGrams: +sizeIn.value } : base);
+  const sized = () => base;
   const mealSel = mealSelect(state.meal);
   const preview = h('p', { class: 'num-line' });
-  const draw = () => { sizeField.hidden = !(unitSel.value === 'package' && !base.packageGrams); preview.textContent = macroText(macrosFor(sized(), amount.value, unitSel.value)); };
+  const draw = () => { preview.textContent = macroText(macrosFor(sized(), amount.value, unitSel.value)); };
   amount.addEventListener('input', draw);
-  sizeIn.addEventListener('input', draw);
   unitSel.addEventListener('change', draw);
   draw();
 
@@ -51,7 +48,6 @@ export function foodSheet(food, today) {
     base.brand ? h('div', { class: 'sub' }, base.brand) : null,
     h('div', { class: 'sub' }, `${perLabel}: ${macroText(base)}`),
     h('div', { class: 'grid2' }, field('Amount', amount), field('Unit', unitSel)),
-    sizeField,
     field('Meal', mealSel),
     preview);
 
@@ -63,10 +59,6 @@ export function foodSheet(food, today) {
     button('Add', async () => {
       if (!(+amount.value > 0)) { toast('Enter an amount'); return; }
       if (!mealSel.value) { toast('Choose a meal first'); mealSel.focus(); return; }
-      if (unitSel.value === 'package' && !base.packageGrams) {
-        if (!(+sizeIn.value > 0)) { toast('Enter how many grams the whole item weighs'); sizeIn.focus(); return; }
-        await data.setFoodSize(base, +sizeIn.value); // remembered for next time
-      }
       state.meal = null;
       clearSearch();
       await data.logFood(today, sized(), +amount.value, unitSel.value, mealSel.value);

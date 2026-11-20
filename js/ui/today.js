@@ -312,10 +312,10 @@ export function renderToday(root, ctx) {
     (() => { const [l, r] = braziers(); startFlames(); return h('header', { class: 'hero' }, l,
       h('div', { class: 'hero-title' }, h('div', { class: 'sub' }, nice(today)), h('h1', { class: 'title' }, 'Today')), r); })(),
     levelCard(today),
-    magicCard(today),
-    recapCard(today),
     streakWidget(data.streakInfo(today), today, (d) => editDaySheet(d, go)),
-    checkinCard(today, go),
+    magicCard(today),
     weighCard(today, go),
-    foodCard(today, go)].filter(Boolean));
+    checkinCard(today, go),
+    foodCard(today, go),
+    recapCard(today)].filter(Boolean));
 }

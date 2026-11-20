@@ -18,7 +18,7 @@ export function totals(logs) {
 // or one serving when baseGrams is null (custom items).
 // Units that fit the food: its serving, pieces when the serving is a count (6 nuggets),
 // cups and fl oz for drinks, and grams / oz for anything weighed.
-const LIQUID = /\b(milk|juice|soda|cola|pop|water|coffee|latte|tea|shake|smoothie|drink|beverage|broth|kefir|lemonade|sports drink|energy drink)\b/i;
+const LIQUID = /\b(milk|juice|soda|cola|coke|pepsi|sprite|fanta|dr\.? pepper|mountain dew|root beer|ginger ale|pop|water|seltzer|coffee|latte|espresso|cappuccino|cold brew|tea|shake|smoothie|drink|beverage|broth|kefir|lemonade|gatorade|powerade|electrolyte|sports drink|energy drink|red bull|monster|celsius|kombucha|beer|ale|lager|wine|cider|nog|cocoa|hot chocolate|creamer|frappuccino|frosty)\b/i;
 const PIECES = /(?<![\d/.])(\d+(?:\.\d+)?)\s*(pieces?|pcs?|nuggets?|cookies?|biscuits?|wings?|strips?|slices?|crackers?|chips?|tenders?|eggs?|links?|patties|patty|bars?|balls?|rolls?|pancakes?|waffles?|tacos?|burgers?|sandwich(?:es)?|pretzels?|gummies|candies|pieces|halves|wedges|sticks?|packets?|pouches?|scoops?|tablets?|capsules?|softgels?)/i;
 const frac = (t) => t.trim().split(/\s+/).reduce((a, x) => a + (x.includes('/') ? +x.split('/')[0] / +x.split('/')[1] : +x), 0);
 
@@ -53,10 +53,11 @@ export function units(food) {
       u.push({ id: 'piece', label: `${word || 'piece'} (${Math.round(food.servingGrams / +m[1])} g each)`, grams: food.servingGrams / +m[1] });
     }
   }
-  // the whole package / can / bottle, when its size is known
-  if (food.baseGrams && food.packageGrams && food.packageGrams !== food.servingGrams) {
-    const what = /\bcan(ned)?\b|peach|beans|soup|tuna/i.test(food.name) ? 'whole can' : /bottle|drink|soda|juice|water/i.test(food.name) ? 'whole bottle' : 'whole package';
-    u.push({ id: 'package', label: `${what} (${Math.round(food.packageGrams)} g)`, grams: food.packageGrams });
+  // the whole thing (can / bottle / package): its listed size, or one serving when that's all we know
+  if (food.baseGrams && (food.packageGrams || food.servingGrams) && food.packageGrams !== food.servingGrams) {
+    const g = food.packageGrams || food.servingGrams;
+    const what = /\bcan(ned)?\b|peach|beans|soup|tuna/i.test(food.name) ? 'whole can' : LIQUID.test(food.name) ? 'whole bottle / can' : wholeName(food.name) ? `whole ${wholeName(food.name)}` : 'whole item';
+    if (food.packageGrams) u.push({ id: 'package', label: `${what} (${Math.round(g)} g)`, grams: g });
   }
   if (food.baseGrams) {
     // cups: from the label when it says "1/2 cup (122 g)", otherwise 240 g for drinks

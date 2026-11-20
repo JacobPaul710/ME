@@ -211,6 +211,7 @@ async function startApp(s) {
   setInterval(() => sync.syncNow(), 60000);
   await sync.syncNow();
   if (await data.ensureRoutine()) sync.schedule(500); // your routine, loaded once
+  if (await data.ensureMagic()) sync.schedule(500); // your Magic list, set up once
   checkMilestone();
 }
 

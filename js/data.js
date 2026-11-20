@@ -159,6 +159,28 @@ export function varPick(key, date) {
 export const setVarPick = (key, date, n) => { const wk = weekKey(date); return store.put('varpick', `varpick:${key}:${wk}`, { key, week: wk, n }); };
 
 // ---- your routine (loaded once) ----
+// Your Magic list, set up once: creatine morning and night, Ritalin with timers, Wellbutrin, Lexapro.
+// Anything you already added by the same name is updated, not duplicated. Runs once per account.
+export async function ensureMagic() {
+  const st = settings();
+  if (st.magicSetup) return false;
+  const list = [...supplements()];
+  const want = [
+    { match: /creatine/i, rec: { name: 'Creatine monohydrate', preset: 'creatine', dose: '2.5 g', when: 'both' } },
+    { match: /^ritalin$|ritalin 27/i, rec: { name: 'Ritalin', dose: '27 mg', when: 'morning', timerHours: 10 } },
+    { match: /ritalin \(extra\)|ritalin 10/i, rec: { name: 'Ritalin (extra)', dose: '10 mg', when: 'morning', optional: true, timerHours: 4 } },
+    { match: /wellbutrin/i, rec: { name: 'Wellbutrin', dose: '', when: 'morning' } },
+    { match: /lexapro/i, rec: { name: 'Lexapro', dose: '', when: 'night' } },
+  ];
+  for (const w of want) {
+    const i = list.findIndex((x) => w.match.test(x.name));
+    if (i >= 0) { list[i] = { ...list[i], ...w.rec, name: list[i].name }; delete list[i].times; }
+    else list.push({ id: 'sp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...w.rec });
+  }
+  await saveSettings({ ...settings(), supplements: list, magicSetup: true });
+  return true;
+}
+
 export async function ensureRoutine() {
   if (store.get('seed:routine-v1')) return false;
   for (const r of seedRecords()) if (!store.get(r.id)) await store.put('exercise', r.id, r.data);

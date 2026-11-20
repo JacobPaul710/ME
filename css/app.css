@@ -533,7 +533,10 @@ html, body { overscroll-behavior-x: none; }
 .meal-head.m-snacks { background: #d6ead0; }
 html[data-theme="stone"] .meal-head, html[data-theme="wood"] .meal-head { color: #2c2117; }
 /* Your logged food glows, so it never looks like a button */
-.meal-item { box-shadow: 0 0 0 2px rgba(224, 169, 46, 0.5), 0 0 12px rgba(224, 169, 46, 0.4); border-color: #e0a92e !important; }
+.logged-meal, .card.meal { border: 2px solid var(--yellow) !important; border-radius: 14px; padding: 8px; }
+.logged-meal .meal-head, .card.meal .meal-head { margin-top: 0; }
+.logged-meal .meal-item, .card.meal .meal-item { border: 0 !important; box-shadow: none; background: transparent; border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important; border-radius: 0; }
+.logged-meal .meal-item:last-child, .card.meal .meal-item:last-child { border-bottom: 0 !important; }
 /* Magic card (Today) */
 .card.magic { gap: 6px; }
 .magic-count { font-size: 13px; font-weight: 800; color: #6b3fa0; }
@@ -551,3 +554,10 @@ html[data-theme="stone"] .meal-head, html[data-theme="wood"] .meal-head { color:
 .magic-row .t, .magic-fold .t { margin-left: auto; color: var(--muted); font-size: 13px; }
 .magic-fold { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 0; background: rgba(0, 0, 0, 0.05); font: inherit; font-size: 15px; color: var(--text); cursor: pointer; text-align: left; }
 .magic-fold.done { background: rgba(63, 138, 58, 0.14); }
+
+/* Pop-ups always in the middle of the screen */
+.celebrate { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100dvh; }
+/* Check-box rows in Settings (e.g. Rest timer on, Optional) */
+label.row.check { display: flex; align-items: center; gap: 10px; }
+label.row.check input[type="checkbox"] { width: 24px; height: 24px; min-height: 0; flex: none; margin: 0; }
+label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white-space: normal; }

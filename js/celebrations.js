@@ -57,6 +57,7 @@ function showPopup({ big = false, kind = '', label, num, title, text, source, bu
       source ? h('p', { class: 'source' }, source) : null,
       h('button', { type: 'button', class: 'btn primary block', onClick: () => { stopAudio(); wrap.remove(); window.dispatchEvent(new Event('tracker-popup-closed')); } }, button)));
   document.body.append(wrap);
+  wrap.querySelector('button')?.focus({ preventScroll: true });
 }
 
 export function celebrate(n) {

@@ -3,6 +3,15 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.77.0 (ME patch 22)
+- 3.77.0 Your Magic list is set up for you once: Creatine 2.5 g morning and night, Ritalin 27 mg (10 h timer), Ritalin 10 mg optional (4 h timer), Wellbutrin (morning), Lexapro (night).
+- 3.76.0 Today order: combat level, calendar, Magic, weigh-in, "What are we doing today?", nutrition.
+- 3.75.0 Exercises close only when you tap Done, never on their own.
+- 3.74.0 Every food has a "whole" option and never asks you to type a size (package size from the data, or one serving); every drink gets swallows, cups and fl oz.
+- 3.73.0 Each meal is one group with a yellow outline (header and entries together), entries without their own boxes.
+- 3.72.2 Pop-ups always sit in the middle of the screen.
+- 3.72.1 Check-box rows in Settings (rest timer, optional) read left to right.
+
 ## 3.72.0 (ME patch 21)
 - 3.72.0 Magic card on Today: Morning and Night check-offs with a wand by each, Morning folds when done and Night opens, timers (e.g. 10 h after Ritalin) count down right on the card, optional items give bonus XP.
 - 3.71.0 Supplements and medications: each has When (Morning, Night, or both), Optional, and an optional timer, set in Settings. They moved off the Food tab onto the Magic card.
