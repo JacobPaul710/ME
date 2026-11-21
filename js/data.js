@@ -130,7 +130,20 @@ const sizeKey = (f) => 'foodsize:' + String(`${f.brand || ''} ${f.name}`).toLowe
 export const foodSize = (f) => (store.get(sizeKey(f)) || {}).grams || null;
 export const setFoodSize = (f, grams) => store.put('foodsize', sizeKey(f), { grams });
 export const workoutDone = (dayType, date) => !!store.get(`wkdone:${dayType}:${date}`);
-export const setWorkoutDone = (dayType, date) => store.put('wkdone', `wkdone:${dayType}:${date}`, { dayType, date });
+export const setWorkoutDone = (dayType, date, quote = null) => store.put('wkdone', `wkdone:${dayType}:${date}`, { dayType, date, quote });
+// Quotes: a shuffled deck. Every quote is used once before any comes back.
+export function nextQuote(total) {
+  const st = settings();
+  let bag = st.quoteBag;
+  if (!bag || !Array.isArray(bag.order) || bag.order.length !== total || bag.i >= total) {
+    const order = Array.from({ length: total }, (_, i) => i);
+    for (let i = total - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    bag = { order, i: 0 };
+  }
+  const q = bag.order[bag.i];
+  saveSettings({ ...st, quoteBag: { order: bag.order, i: bag.i + 1 } });
+  return q;
+}
 export const allSetsDone = () => allSets().filter((s) => s.done);
 export const daySets = (date) => allSets().filter((s) => s.date === date);
 export async function clearDay(date) {

@@ -569,3 +569,20 @@ label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white
 .logged-meal.m-snacks, .card.meal.m-snacks { border-color: #9cc98f !important; }
 /* Complete workout: a different colour from the rest */
 .btn.complete-workout, html[data-theme] .btn.complete-workout { background: #2f6b3a; color: #fff; border-color: #2f6b3a; }
+
+/* Workout summary pop-up (parchment card; changing numbers in green, quote in rust) */
+.celebrate.summary .celebrate-card { background: #f3e7cc; border: 2px solid #6b4a2b; color: #3b2a1a; text-align: center; }
+.celebrate.summary .celebrate-title { color: #3b2a1a; font-size: 24px; }
+.celebrate.summary .celebrate-shine { display: none; }
+.sum-n { color: #2f6b3a; font-weight: 800; }
+.sum-complete { color: #2f6b3a; font-size: 16px; margin: 2px 0 14px; }
+.sum-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.sum-tile { background: #e3d3ad; border-radius: 10px; padding: 10px; }
+.sum-label { font-size: 13px; color: #6b4a2b; }
+.sum-num { font-size: 30px; font-weight: 800; color: #2f6b3a; }
+.sum-goals { text-align: left; border-top: 1px solid #c9b48a; padding-top: 10px; margin-bottom: 12px; }
+.sum-goal { font-size: 16px; line-height: 1.6; color: #3b2a1a; }
+.sum-quote { margin: 0 0 16px; font-style: italic; font-size: 17px; line-height: 1.45; color: #8a3b12; font-family: Georgia, serif; }
+.sum-who { display: block; font-style: normal; font-size: 14px; margin-top: 4px; }
+.celebrate.summary .btn.primary { background: #6b4a2b; color: #fff; }
+.celebrate.summary { background: #140e08; }

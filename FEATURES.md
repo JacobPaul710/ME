@@ -1,6 +1,6 @@
 # ME feature list
 
-## Built (version 3.55.1)
+## Built (version 3.83.0)
 
 **Account and sync**
 - Sign in, or create an account (password typed twice, "Account created" screen), with Show password
@@ -19,6 +19,7 @@
 - Weigh-in card (yellow until logged, green after)
 - Gear card: % of planned workouts done since you started, current tier and the next one
 - Food summary for the day
+- Magic card: supplements and medications, Morning and Night folded, one light on the card, timers on the card
 
 **Workouts**
 - Your routine loaded: Push, Pull, Legs, Back and Forearms, with your starting numbers
@@ -32,9 +33,10 @@
 - Rest timer between sets (1 to 3 minutes, set in Settings) with a bell when rest is over
 - Skill XP toast, earthquake shake and voice cheer when a set is done
 - Cardio by minutes and optional miles
+- Complete workout (green button): closes what you did, even if you skipped one, and shows the summary pop-up: workout number, exercises, total sets, rep goals reached, and a quote (405 quotes, none repeats until all are used). "I am stronger." logs it and goes Home
 
 **Food**
-- Add food: pick the meal, Scan barcode, Add item, and one search bar (Frequently used shows until you type)
+- Add food: pick the meal, Scan barcode, Frequently used, Create item, and one search bar (Frequently used shows until you type)
 - Logged today: every item with calories and macros; tap to change or remove
 - Goal + Exercise − Food = Remaining; protein, carbs and fat with % of calories
 - Workout calories estimated from how long you lifted and your bodyweight

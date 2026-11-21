@@ -45,17 +45,18 @@ function popup(opts) {
   opts.sound?.();
   showPopup(opts);
 }
-function showPopup({ big = false, kind = '', label, num, title, text, source, button = 'Keep going', icon = null }) {
+function showPopup({ big = false, kind = '', label, num, title, text, source, button = 'Keep going', icon = null, body = null, onOk = null, noFireworks = false }) {
   const wrap = h('div', { class: `celebrate${big ? ' big' : ''} ${kind}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': label },
-    fireworks(big),
+    noFireworks ? null : fireworks(big),
     h('div', { class: 'celebrate-card' },
       h('div', { class: 'celebrate-shine', 'aria-hidden': 'true' }),
       icon ? h('div', { class: 'celebrate-icon', 'aria-hidden': 'true' }, icon) : null,
       num != null ? h('div', { class: 'celebrate-num' }, String(num)) : null,
       h('div', { class: 'celebrate-title' }, title),
-      h('p', { class: 'sub' }, text),
+      text ? h('p', { class: 'sub' }, text) : null,
+      body,
       source ? h('p', { class: 'source' }, source) : null,
-      h('button', { type: 'button', class: 'btn primary block', onClick: () => { stopAudio(); wrap.remove(); window.dispatchEvent(new Event('tracker-popup-closed')); } }, button)));
+      h('button', { type: 'button', class: 'btn primary block', onClick: () => { stopAudio(); wrap.remove(); onOk?.(); window.dispatchEvent(new Event('tracker-popup-closed')); } }, button)));
   document.body.append(wrap);
   wrap.querySelector('button')?.focus({ preventScroll: true });
 }
@@ -88,4 +89,9 @@ export function tierUnlocked(tier) {
   sfx.tier();
   voice(`tier-${tier.id}`);
   popup({ kind: 'tier', label: tier.title, title: tier.title, text: tier.text, source: `Based on: ${tier.source}`, button: 'Claim it' });
+}
+
+// Workout summary: tap "I am stronger." to log it and go Home.
+export function workoutSummary({ label, title, body, onOk }) {
+  popup({ sound: () => { stopAudio(); sfx.milestone(); }, kind: 'summary', noFireworks: true, label, title, body, onOk, button: 'I am stronger.' });
 }

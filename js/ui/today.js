@@ -205,7 +205,7 @@ function magicCard(today) {
     const open = !!opened[when];
     const toggle = () => { opened[when] = !open; document.dispatchEvent(new CustomEvent('me:rerender')); };
     const head = h('button', { type: 'button', class: `magic-fold${complete ? ' done' : ''}`, 'aria-expanded': open ? 'true' : 'false', onClick: toggle },
-      statusDot(complete), h('b', null, `${icon} ${label}`), h('span', { class: 't' }, open ? '▲' : '▼'));
+      h('b', null, `${icon} ${label}`), h('span', { class: 't' }, open ? '▲' : '▼'));
     if (!open) return head;
     return h('div', { class: 'magic-sec' }, head,
       list.map((x) => {

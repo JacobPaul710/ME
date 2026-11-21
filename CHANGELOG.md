@@ -3,6 +3,11 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.83.0 (ME patch 24)
+- 3.83.0 405 quotes for the workout summary, shuffled; none repeats until every one has been used.
+- 3.82.0 Workout summary is a pop-up: workout number, exercises, total sets, rep goals reached (green numbers), a quote in rust. "I am stronger." logs the workout and goes Home. Weight lifted, XP and "ready to go up" removed.
+- 3.81.1 Magic: one light on the card only; none on Morning or Night.
+
 ## 3.81.0 (ME patch 23)
 - 3.81.0 "Complete workout" button (green) at the bottom of a workout: closes what you did and shows the summary even if you skipped an exercise.
 - 3.80.0 Magic card: Morning and Night both start folded with a yellow/green light; the card's light goes green when everything is taken. No counts or taken times; timers stay.
