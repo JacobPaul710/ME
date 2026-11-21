@@ -60,7 +60,7 @@ export function foodSheet(food, today) {
   const perLabel = base.baseGrams ? 'Per 100 g' : `Per ${base.baseLabel}`;
   const body = h('div', { class: 'stack' },
     base.brand ? h('div', { class: 'sub' }, base.brand) : null,
-    h('div', { class: 'sub' }, `${perLabel}: ${macroText(base)}`),
+    h('div', { class: 'sub' }, base.fromLabel && base.servingGrams ? `Per serving, from the label: ${macroText(macrosFor(base, 1, 'serving'))}` : `${perLabel}: ${macroText(base)}`),
     h('div', { class: 'grid2' }, field('Amount', amount), field('Unit', unitSel)),
     field('Meal', mealSel),
     preview);
@@ -137,7 +137,14 @@ function scanSheet(today) {
     if (!s.panel.isConnected) { cam.stop(); return; }
     msg.textContent = 'Line the barcode up inside the box.';
     let lit = false;
-    extra.replaceChildren(button('Flashlight', async () => { lit = !lit; if (!(await cam.torch(lit))) { lit = false; toast("This phone's browser can't turn on the light"); } }, 'ghost block'));
+    const FLASH = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2h10v4l-2 3v11a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V9L7 6z"/><path d="M7 6h10"/><path d="M12 12v2"/></svg>';
+    const fl = h('button', { type: 'button', class: 'btn ghost flash-btn', 'aria-label': 'Flashlight', 'aria-pressed': 'false', onClick: async () => {
+      lit = !lit;
+      if (!(await cam.torch(lit))) { lit = false; toast("This phone's browser can't turn on the light"); }
+      fl.setAttribute('aria-pressed', lit ? 'true' : 'false');
+    } });
+    fl.innerHTML = FLASH;
+    extra.replaceChildren(fl);
   })
     .catch((e) => {
       video.remove();

@@ -130,7 +130,13 @@ const sizeKey = (f) => 'foodsize:' + String(`${f.brand || ''} ${f.name}`).toLowe
 export const foodSize = (f) => (store.get(sizeKey(f)) || {}).grams || null;
 export const setFoodSize = (f, grams) => store.put('foodsize', sizeKey(f), { grams });
 export const workoutDone = (dayType, date) => !!store.get(`wkdone:${dayType}:${date}`);
-export const setWorkoutDone = (dayType, date, quote = null) => store.put('wkdone', `wkdone:${dayType}:${date}`, { dayType, date, quote });
+export const setWorkoutDone = (dayType, date, quote = null, closed = []) => store.put('wkdone', `wkdone:${dayType}:${date}`, { dayType, date, quote, closed });
+// Undo Complete: reopens the workout and the exercises Complete closed.
+export async function reopenWorkout(dayType, date) {
+  const rec = store.get(`wkdone:${dayType}:${date}`);
+  for (const id of (rec && rec.closed) || []) await setExComplete(id, date, false);
+  await store.remove(`wkdone:${dayType}:${date}`);
+}
 // Quotes: a shuffled deck. Every quote is used once before any comes back.
 export function nextQuote(total) {
   const st = settings();

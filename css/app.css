@@ -590,3 +590,7 @@ label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white
 /* The food you just added lights up for a moment */
 .meal-item.just-added { animation: justAdded 2.4s ease-out; }
 @keyframes justAdded { 0%, 40% { background: rgba(47, 107, 58, 0.25); } 100% { background: transparent; } }
+
+/* Scanner flashlight: just the icon, lit when on */
+.flash-btn { display: flex; align-items: center; justify-content: center; min-height: 56px; width: 72px; margin: 0 auto; }
+.flash-btn[aria-pressed="true"] { background: #f2c14e; color: #3b2a1a; }

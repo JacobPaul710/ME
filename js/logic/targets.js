@@ -88,20 +88,21 @@ export function dailyTargets(p, today = new Date()) {
 // MET 3.5 = resistance training, multiple exercises, 8–15 reps (2024 Compendium, code 02054).
 export const LIFTING_MET = 3.5;
 
-// Minutes from the first to the last completed set, plus one rest period.
+// Actual lifting time: first completed set to last completed set.
+// If sets were logged all at once (or the span looks wrong), fall back to sets × (rest + 1 min).
 export function workoutMinutes(doneTimes, restSeconds = 90) {
   const t = doneTimes.map((x) => Date.parse(x)).filter((x) => !Number.isNaN(x)).sort((a, b) => a - b);
   if (!t.length) return 0;
   const span = (t[t.length - 1] - t[0]) / 60000;
-  const perSet = restSeconds / 60 + 1;
-  // If sets were logged all at once (or very late), fall back to sets × (rest + 1 min).
-  const est = t.length * perSet;
-  return Math.round(span > 0 && span < 240 ? span + perSet : est);
+  const est = t.length * (restSeconds / 60 + 1);
+  return Math.round(t.length > 1 && span >= 1 && span < 240 ? span : est);
 }
 
+// Net calories: only the extra burned above resting (MET − 1), so the calories you'd burn
+// sitting still aren't counted twice (they're already in your daily goal).
 export function workoutCalories(minutes, weightLb) {
   if (!(minutes > 0 && weightLb > 0)) return 0;
-  return Math.round((LIFTING_MET * 3.5 * weightLb * LB) / 200 * minutes);
+  return Math.round(((LIFTING_MET - 1) * 3.5 * weightLb * LB) / 200 * minutes);
 }
 
 // Is today's eating enough for muscle growth after training?

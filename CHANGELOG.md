@@ -3,6 +3,15 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.89.1 (ME patch 25)
+- 3.89.1 Scanner flashlight is an icon (lights up when on).
+- 3.89.0 Barcodes check the USDA brand database (makers' own label data) first; Open Food Facts only if the USDA doesn't have it. Label foods use the printed per-serving numbers, and per-100 g values keep 2 decimals so servings and whole cans add up to the label.
+- 3.88.0 Cups and fl oz on anything pourable (egg whites, soups, sauces, yogurt, oils, canned pasta…), not just drinks.
+- 3.87.0 Search puts the plain food first ("apple" → Apples, raw); whole apple, banana, orange, pear and peach as a unit, first in the list.
+- 3.86.1 Workout burn counts only the extra calories above resting, over actual lifting time (first set to last).
+- 3.86.0 "Reopen workout" undoes Complete.
+- 3.85.0 "Add forearms" on any workout day, even after Complete.
+
 ## 3.84.0 (ME patch 24)
 - 3.84.0 Adding a food closes Frequently used and takes you to that meal in your log, with the new entry lit up.
 - 3.83.1 Logo: "ME" removed; just the walnut dumbbell.

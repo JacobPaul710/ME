@@ -14,4 +14,4 @@ export const ENDPOINTS = {
 // 30 searches an hour; a free personal key from https://api.data.gov/signup/ allows 1,000 an hour.
 export const FDC = { url: 'https://api.nal.usda.gov/fdc/v1', key: 'DEMO_KEY' };
 
-export const APP_VERSION = '3.84.0';
+export const APP_VERSION = '3.89.1';

@@ -428,17 +428,20 @@ export function renderTrain(root, ctx) {
   const exs = data.exercisesFor(dayType);
   if (!exs.length) root.append(empty(`No exercises saved for ${dayType} day yet. Add the ones you do and they'll be here every time.`));
   dayBlocks(exs, dayType, today, root);
-  // Every exercise done: the summary card goes on top.
   root.append(button('+ Add exercise', () => addExerciseSheet(dayType), 'block'));
   // Complete workout: closes what you did (even if one got skipped), shows the summary, then Home.
   const anySet = data.daySets(today).some((x) => x.done && x.dayType === dayType);
-  if (anySet && !data.workoutDone(dayType, today)) {
+  if (data.workoutDone(dayType, today)) {
+    root.append(button('Reopen workout', async () => { await data.reopenWorkout(dayType, today); toast('Workout reopened'); }, 'ghost block'));
+  } else if (anySet) {
     root.append(button('Complete workout', async () => {
       const sets = data.daySets(today).filter((x) => x.done && x.dayType === dayType);
-      for (const e of exs) if (sets.some((x) => x.exerciseId === e.id)) await data.setExComplete(e.id, today, true);
+      const closed = exs.filter((e) => sets.some((x) => x.exerciseId === e.id) && !data.exComplete(e.id, today)).map((e) => e.id);
+      for (const id of closed) await data.setExComplete(id, today, true);
       const { title, body, qi, n } = summaryBody(dayType, exs, today);
-      celebrateSummary({ label: `${dayType} workout ${n} complete`, title, body, onOk: async () => { await data.setWorkoutDone(dayType, today, qi); go('#today'); } });
+      celebrateSummary({ label: `${dayType} workout ${n} complete`, title, body, onOk: async () => { await data.setWorkoutDone(dayType, today, qi, closed); go('#today'); } });
     }, 'complete-workout block'));
   }
-  if (past && data.forearmDay(today)) root.append(button('Forearms for this day', () => go(`#train/${today}.forearms`), 'block'));
+  // Forearms can go on top of any workout day (the calendar shows the pickaxe).
+  root.append(button(data.forearmDay(today) ? 'Forearms ⛏ (done today)' : 'Add forearms', () => go(past ? `#train/${today}.forearms` : '#train/forearms'), 'block'));
 }

@@ -19,6 +19,8 @@ export function totals(logs) {
 // Units that fit the food: its serving, pieces when the serving is a count (6 nuggets),
 // cups and fl oz for drinks, and grams / oz for anything weighed.
 const LIQUID = /\b(milk|juice|soda|cola|coke|pepsi|sprite|fanta|dr\.? pepper|mountain dew|root beer|ginger ale|pop|water|seltzer|coffee|latte|espresso|cappuccino|cold brew|tea|shake|smoothie|drink|beverage|broth|kefir|lemonade|gatorade|powerade|electrolyte|sports drink|energy drink|red bull|monster|celsius|kombucha|beer|ale|lager|wine|cider|nog|cocoa|hot chocolate|creamer|frappuccino|frosty)\b/i;
+// Pourable foods that aren't drinks: these get cups and fl oz too.
+const POURABLE = /\begg,? whites?\b|\bwhites?, (raw|liquid)|liquid|egg substitute|\bsoup|\bstew\b|\bchili\b|\bsyrup|\bsauce|\bdressing|\byogh?urt|\bcream\b|\bhalf and half|\boil\b|\bhoney\b|\bbatter\b|\bsalsa|\bgravy|\bpudding|\boatmeal|\bporridge|\bcereal\b|\bbeefaroni|\bravioli|\bspaghettios|\bmac(aroni)? (and|&) cheese/i;
 const PIECES = /(?<![\d/.])(\d+(?:\.\d+)?)\s*(pieces?|pcs?|nuggets?|cookies?|biscuits?|wings?|strips?|slices?|crackers?|chips?|tenders?|eggs?|links?|patties|patty|bars?|balls?|rolls?|pancakes?|waffles?|tacos?|burgers?|sandwich(?:es)?|pretzels?|gummies|candies|pieces|halves|wedges|sticks?|packets?|pouches?|scoops?|tablets?|capsules?|softgels?)/i;
 const frac = (t) => t.trim().split(/\s+/).reduce((a, x) => a + (x.includes('/') ? +x.split('/')[0] / +x.split('/')[1] : +x), 0);
 
@@ -28,7 +30,7 @@ const WHOLE = [
   [/sandwich|sub\b|hoagie|panini|club\b|blt\b|biscuit sandwich/i, 'sandwich'], [/burrito/i, 'burrito'], [/\btaco/i, 'taco'],
   [/\bwrap\b/i, 'wrap'], [/pizza/i, 'slice'], [/hot dog|frank/i, 'hot dog'], [/\bbar\b/i, 'bar'], [/muffin/i, 'muffin'],
   [/bagel/i, 'bagel'], [/donut|doughnut/i, 'donut'], [/cookie/i, 'cookie'], [/\begg\b|\beggs\b/i, 'egg'], [/banana/i, 'banana'],
-  [/apple\b/i, 'apple'], [/orange\b/i, 'orange'], [/\bcan\b|soda|cola/i, 'can'], [/bottle|water\b/i, 'bottle'],
+  [/apples?\b/i, 'apple'], [/oranges?\b/i, 'orange'], [/^pears?\b/i, 'pear'], [/^peach(es)?\b/i, 'peach'], [/\bcan\b|soda|cola/i, 'can'], [/bottle|water\b/i, 'bottle'],
   [/salad/i, 'salad'], [/bowl/i, 'bowl'], [/fries/i, 'order'], [/shake|frosty|smoothie/i, 'cup'], [/pie\b/i, 'pie'],
 ];
 const wholeName = (name) => (WHOLE.find(([re]) => re.test(name)) || [, null])[1];
@@ -64,10 +66,16 @@ export function units(food) {
     const cm = String(food.servingLabel || '').match(/^\s*([\d./ ]+)\s*cups?\b/i);
     const cupG = cm && food.servingGrams && frac(cm[1]) > 0 ? food.servingGrams / frac(cm[1]) : null;
     const drink = LIQUID.test(food.name) || /\b(ml|fl)/i.test(food.servingLabel || '');
-    if (cupG || drink) u.push({ id: 'cup', label: 'cups', grams: cupG || 240 });
-    if (drink) u.push({ id: 'floz', label: 'fl oz', grams: 29.57 }, { id: 'swallow', label: 'swallows (about 25 ml each)', grams: 25 });
+    const pour = drink || POURABLE.test(food.name);
+    // cups from the label when it gives them; otherwise a cup of something pourable ≈ 240 g
+    if (cupG || pour) u.push({ id: 'cup', label: 'cups', grams: cupG || 240 });
+    if (pour) u.push({ id: 'floz', label: 'fl oz', grams: (cupG || 240) / 8 });
+    if (drink) u.push({ id: 'swallow', label: 'swallows (about 25 ml each)', grams: 25 });
     u.push({ id: 'g', label: 'grams' }, { id: 'oz', label: 'oz', grams: 28.35 });
   }
+  // Basic fruit (whole apple, banana…): the whole piece comes first
+  const pk = u.findIndex((x) => x.id === 'package');
+  if (food.source === 'usda' && pk > 0) u.unshift(...u.splice(pk, 1));
   return u;
 }
 
@@ -90,7 +98,7 @@ export function macrosFor(food, amount, unit) {
 export function defaultAmount(food) {
   if (food.lastAmount && food.lastUnit) return { amount: food.lastAmount, unit: food.lastUnit };
   const u = units(food);
-  if (u[0].id === 'serving') return { amount: 1, unit: 'serving' };
+  if (u[0].id === 'serving' || u[0].id === 'package') return { amount: 1, unit: u[0].id };
   return { amount: food.baseGrams || 100, unit: 'g' };
 }
 

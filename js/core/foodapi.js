@@ -60,12 +60,36 @@ export async function searchOnline(q) {
   return [...best.values()];
 }
 
-// Returns a food, or null when the barcode isn't in the database.
+// Returns a food, or null when the barcode isn't in either database.
+// USDA first: its brand data comes from the makers' own labels. The crowd-sourced
+// Open Food Facts is only used when the USDA doesn't have that barcode.
 export async function lookupBarcode(code) {
+  try {
+    const f = await barcodeFDC(code);
+    if (f) return f;
+  } catch { /* USDA busy or offline: try Open Food Facts */ }
   const res = await get(`${OFF}/api/v2/product/${encodeURIComponent(code)}.json?fields=${FIELDS}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error('Barcode lookup failed. Try again.');
   const j = await res.json();
   if (!j.product) return null;
   return fromOFF({ ...j.product, code });
+}
+
+const digits = (x) => String(x || '').replace(/\D/g, '').replace(/^0+/, '');
+async function barcodeFDC(code) {
+  const res = await get(`${FDC.url}/foods/search?api_key=${FDC.key}&query=${encodeURIComponent(code)}&dataType=Branded&pageSize=10`);
+  if (!res.ok) return null;
+  const j = await res.json();
+  const want = digits(code);
+  const hit = want && (j.foods || []).find((x) => x.gtinUpc && digits(x.gtinUpc) === want);
+  if (!hit) return null;
+  // The full record has the printed label numbers (per serving).
+  let full = hit;
+  try {
+    const r = await get(`${FDC.url}/food/${hit.fdcId}?api_key=${FDC.key}`);
+    if (r.ok) full = { ...hit, ...(await r.json()) };
+  } catch { /* use the search copy */ }
+  const f = fromFDC(full);
+  return f ? { ...f, barcode: code } : null;
 }
