@@ -104,11 +104,15 @@ function weighCard(today) {
 function foodCard(today, go) {
   const t = data.dayTotals(today);
   const tg = data.settings().targets;
+  const goal = data.calorieGoal(today); // same number as the Food tab (goal + today's lifting)
+  const tgt = { ...tg, cal: goal || tg.cal };
   // Green once protein is at target and calories are within 10% of the goal.
-  const met = (+tg.p > 0 || +tg.cal > 0) && (!+tg.p || t.p >= +tg.p) && (!+tg.cal || t.cal >= +tg.cal * 0.9);
+  const met = (+tg.p > 0 || +tgt.cal > 0) && (!+tg.p || t.p >= +tg.p) && (!+tgt.cal || t.cal >= +tgt.cal * 0.9);
+  const next = data.nextStep(today);
   return card(
     h('div', { class: 'row' }, statusDot(met), h('h2', { class: 'card-title grow' }, parse(today).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })), button('Add food', () => go('#food'), 'ghost')),
-    MACROS.map((m) => progressRow(m.label, t[m.key], tg[m.key], m.unit)));
+    MACROS.map((m) => progressRow(m.label, t[m.key], tgt[m.key], m.unit, data.OVER_WINDOW[m.key])),
+    next ? h('p', { class: 'next-step' }, next) : null);
 }
 
 const SWORDS = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>';

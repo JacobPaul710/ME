@@ -594,3 +594,10 @@ label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white
 /* Scanner flashlight: just the icon, lit when on */
 .flash-btn { display: flex; align-items: center; justify-content: center; min-height: 56px; width: 72px; margin: 0 auto; }
 .flash-btn[aria-pressed="true"] { background: #f2c14e; color: #3b2a1a; }
+
+.note-warn { margin: 0; padding: 8px 10px; border-radius: 10px; background: #f6e2b3; color: #5a3d12; font-size: 14px; }
+
+/* Food bars: forest green as they fill, red only past the window */
+.bar.macro-bar > i, html[data-theme] .bar.macro-bar > i { background: #2f6b3a; }
+.bar.macro-bar.red > i, html[data-theme] .bar.macro-bar.red > i { background: #b3261e; }
+.next-step { margin: 4px 0 0; font-weight: 700; color: var(--text); }

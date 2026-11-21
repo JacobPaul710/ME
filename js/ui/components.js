@@ -37,14 +37,16 @@ export function numberInput(value, attrs = {}) {
   return h('input', { type: 'number', inputmode: 'decimal', step: 'any', min: '0', value: value ?? '', ...attrs });
 }
 
-export function progressRow(label, value, target, unit = '') {
+// Food bars: green as they fill; red only past the window over target
+// (calories 5%, carbs and fat 10%; protein never turns red). window = null → never red.
+export function progressRow(label, value, target, unit = '', window = null) {
   const pct = target ? Math.min(100, (value / target) * 100) : 0;
-  const over = target && value > target;
+  const over = window != null && target && value > target * (1 + window);
   return h('div', { class: 'prog' },
     h('div', { class: 'row prog-top' },
       h('span', { class: 'grow' }, label),
       h('span', { class: 'num' }, `${fmt(value, 1)}${unit}`, h('span', { class: 'sub' }, target ? ` / ${fmt(target)}${unit}` : ' / no target'))),
-    h('div', { class: `bar${over ? ' over' : ''}` }, h('i', { style: `width:${pct}%` })));
+    h('div', { class: `bar macro-bar${over ? ' red' : ''}` }, h('i', { style: `width:${pct}%` })));
 }
 
 export function empty(text) { return h('p', { class: 'empty' }, text); }

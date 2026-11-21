@@ -218,6 +218,25 @@ export function burned(date) {
   const minutes = workoutMinutes(done.map((s) => s.doneAt), settings().restSeconds);
   return { minutes, kcal: workoutCalories(minutes, bodyweight()) };
 }
+// One calorie goal everywhere (Home and Food): your daily goal plus today's lifting.
+export function calorieGoal(date) {
+  const tg = settings().targets;
+  return tg.cal ? +tg.cal + burned(date).kcal : null;
+}
+export const OVER_WINDOW = { cal: 0.05, c: 0.1, f: 0.1, p: null };
+// The plain "what to eat next" line.
+export function nextStep(date) {
+  const goal = calorieGoal(date);
+  if (!goal) return null;
+  const t = dayTotals(date), tg = settings().targets;
+  const left = Math.round(goal - t.cal);
+  if (t.cal > goal * 1.05) return "Over today. Tomorrow's a fresh start.";
+  if (left <= goal * 0.05) return 'Calories done for today. No need to finish carbs or fat.';
+  if (+tg.p && t.p < +tg.p) return `${left.toLocaleString('en-US')} calories left. Protein first.`;
+  const cRoom = !+tg.c || t.c < +tg.c, fRoom = !+tg.f || t.f < +tg.f;
+  const fill = cRoom ? 'carbs' : fRoom ? 'fat' : 'whatever you like';
+  return `${left.toLocaleString('en-US')} calories left. Fill them with ${fill}.`;
+}
 export function intakeNotes(date) {
   const trained = setsOn(date).some((s) => s.done);
   return intakeCheck({ eaten: dayTotals(date), targets: settings().targets, burned: burned(date).kcal, trained, weightLb: bodyweight() });

@@ -17,27 +17,43 @@ export function fromUSDA(row) {
 }
 
 // Open Food Facts product -> food (per 100 g). Returns null without calories.
+// Cross-check: OFF stores the label's per-serving numbers and its own per-100 g numbers.
+// When they disagree, the per-serving ones (typed straight off the label) win, and when the
+// serving is a whole container ("1 can", "1 bottle") its weight is the package weight.
+const WHOLE_SERVING = /^\s*1\s*(can|bottle|package|pkg|container|pouch|bag|box|cup container|bowl|tray|carton|jar|tub)\b/i;
 export function fromOFF(prod) {
   const n = prod.nutriments || {};
   let kcal = n['energy-kcal_100g'];
   if (kcal == null && n.energy_100g != null) kcal = n.energy_100g / 4.184;
-  if (kcal == null) return null;
+  const pkg = offPackage(prod);
   const sq = parseFloat(prod.serving_quantity);
+  const ss = String(prod.serving_size || '');
+  const servG = WHOLE_SERVING.test(ss) && pkg ? pkg : sq > 0 ? sq : null;
+  const sk = n['energy-kcal_serving'] ?? (n.energy_serving != null ? n.energy_serving / 4.184 : null);
+  let vals = { cal: kcal, p: +n.proteins_100g || 0, c: +n.carbohydrates_100g || 0, f: +n.fat_100g || 0 };
+  let checked = false;
+  if (sk != null && servG) {
+    const k = 100 / servG;
+    const fromServing = { cal: +sk * k, p: (+n.proteins_serving || 0) * k, c: (+n.carbohydrates_serving || 0) * k, f: (+n.fat_serving || 0) * k };
+    if (kcal == null || Math.abs(fromServing.cal - kcal) / Math.max(fromServing.cal, kcal, 1) > 0.15) { vals = fromServing; checked = kcal != null; }
+  }
+  if (vals.cal == null) return null;
+  const whole = WHOLE_SERVING.test(ss) && pkg;
   return {
     name: (prod.product_name || '').trim() || 'Unnamed product',
     brand: (prod.brands || '').split(',')[0].trim(),
     source: 'off', barcode: prod.code || null,
     baseGrams: 100, baseLabel: '100 g',
-    cal: r2(+kcal), p: r2(+n.proteins_100g || 0), c: r2(+n.carbohydrates_100g || 0), f: r2(+n.fat_100g || 0),
-    servingLabel: prod.serving_size || null, servingGrams: sq > 0 ? sq : null,
-    packageGrams: (() => {
-      if (+prod.product_quantity > 0 && !/oz|lb/i.test(prod.product_quantity_unit || '')) return +prod.product_quantity;
-      const m = String(prod.quantity || '').match(/([\d.]+)\s*(g|ml)\b/i);
-      if (m) return +m[1];
-      const oz = String(prod.quantity || '').match(/([\d.]+)\s*(fl\.?\s*)?oz\b/i);
-      return oz ? Math.round(+oz[1] * (oz[2] ? 29.57 : 28.35)) : null;
-    })(),
+    cal: r2(+vals.cal), p: r2(vals.p), c: r2(vals.c), f: r2(vals.f),
+    servingLabel: whole ? `${ss.match(WHOLE_SERVING)[0].trim()} (${r0(pkg)} g)` : ss || null,
+    servingGrams: servG,
+    packageGrams: pkg,
+    ...(checked ? { fixedMixup: true } : {}),
   };
+}
+function offPackage(prod) {
+  if (+prod.product_quantity > 0 && !/oz|lb/i.test(prod.product_quantity_unit || '')) return +prod.product_quantity;
+  return packageGrams(prod.quantity);
 }
 
 // USDA FoodData Central search result -> food (per 100 g). Returns null without calories.
@@ -65,6 +81,8 @@ export function fromFDC(item) {
   const label = servingGrams && lv('calories') != null;
   const per100 = (v) => r2((v / servingGrams) * 100);
   const cal = label ? per100(lv('calories')) : get('cal');
+  const db = get('cal');
+  const mixup = label && db != null && Math.abs(cal - db) / Math.max(cal, db, 1) > 0.15;
   if (cal == null) return null;
   const brand = (item.brandName || item.brandOwner || item.restaurant || '').trim();
   return {
@@ -76,6 +94,7 @@ export function fromFDC(item) {
     c: label ? per100(lv('carbohydrates') || 0) : r2(get('c') || 0),
     f: label ? per100(lv('fat') || 0) : r2(get('f') || 0),
     fromLabel: !!label,
+    ...(mixup ? { fixedMixup: true } : {}),
     servingLabel, servingGrams,
     packageGrams: packageGrams(item.packageWeight),
   };

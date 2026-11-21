@@ -3,6 +3,13 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.91.0 (ME patch 26)
+- 3.91.0 A plain "what to eat next" line on Home and Food (protein first, then carbs; "calories done" once you're there).
+- 3.90.3 Food bars are forest green; calories turn red past 5% over, carbs and fat past 10%; protein never turns red.
+- 3.90.2 Workout time skips breaks: a gap over 15 minutes between sets (like forearms later in the day) doesn't count.
+- 3.90.1 Home uses the same calorie goal as the Food tab (goal + today's lifting).
+- 3.90.0 Label mix-up fix: when a food's per-serving numbers (typed off the label) and its per-100 g numbers disagree, the label's per-serving numbers win. A serving of "1 can" / "1 bottle" uses the package weight. Fixed foods show a short "worth a glance at the package" note. (Beefaroni whole can: 350 cal, 10 g protein, matching the label.)
+
 ## 3.89.1 (ME patch 25)
 - 3.89.1 Scanner flashlight is an icon (lights up when on).
 - 3.89.0 Barcodes check the USDA brand database (makers' own label data) first; Open Food Facts only if the USDA doesn't have it. Label foods use the printed per-serving numbers, and per-100 g values keep 2 decimals so servings and whole cans add up to the label.

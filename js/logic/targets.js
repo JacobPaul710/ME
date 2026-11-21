@@ -88,14 +88,17 @@ export function dailyTargets(p, today = new Date()) {
 // MET 3.5 = resistance training, multiple exercises, 8–15 reps (2024 Compendium, code 02054).
 export const LIFTING_MET = 3.5;
 
-// Actual lifting time: first completed set to last completed set.
-// If sets were logged all at once (or the span looks wrong), fall back to sets × (rest + 1 min).
+// Actual lifting time: the time between completed sets, but a gap longer than 15 minutes
+// is a break (forearms later in the day, a long pause) and doesn't count.
+// If sets were logged all at once, fall back to sets × (rest + 1 min).
+export const BREAK_MIN = 15;
 export function workoutMinutes(doneTimes, restSeconds = 90) {
   const t = doneTimes.map((x) => Date.parse(x)).filter((x) => !Number.isNaN(x)).sort((a, b) => a - b);
   if (!t.length) return 0;
-  const span = (t[t.length - 1] - t[0]) / 60000;
+  let active = 0;
+  for (let i = 1; i < t.length; i++) { const gap = (t[i] - t[i - 1]) / 60000; if (gap <= BREAK_MIN) active += gap; }
   const est = t.length * (restSeconds / 60 + 1);
-  return Math.round(t.length > 1 && span >= 1 && span < 240 ? span : est);
+  return Math.round(t.length > 1 && active >= 1 ? active : est);
 }
 
 // Net calories: only the extra burned above resting (MET − 1), so the calories you'd burn
