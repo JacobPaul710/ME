@@ -1,7 +1,7 @@
 import { h, fmt, svg } from './dom.js';
 import { skillUp } from '../celebrations.js';
 import { ICONS } from './character.js';
-import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light } from './components.js';
+import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light, closeAllSheets } from './components.js';
 import { nice, iso, addDays } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
 import { search, norm } from '../logic/foods.js';
@@ -23,6 +23,20 @@ const mealName = (id) => (data.MEALS.find((m) => m[0] === id) || [, 'Snacks'])[1
 const mealSelect = (value) => h('select', null, [h('option', { value: '', selected: !value, disabled: true }, 'Choose a meal'), ...data.MEALS.map(([id, label]) => h('option', { value: id, selected: id === value }, label))]);
 const macroText = (m) => `${fmt(m.cal)} cal · ${fmt(m.p, 1)} g protein · ${fmt(m.c, 1)} g carbs · ${fmt(m.f, 1)} g fat`;
 const sourceLabel = { usda: 'Basic foods', 'usda-online': 'USDA', off: 'Open Food Facts', custom: 'My item' };
+
+// After adding: scroll to that meal in the log and light up the new entry.
+function showLatest(meal) {
+  let tries = 0;
+  const look = () => {
+    const sec = document.querySelector(`.logged-meal.m-${meal}`) || document.querySelector(`.card.meal.m-${meal}`);
+    const items = sec ? sec.querySelectorAll('.meal-item') : [];
+    if (!items.length) { if (++tries < 20) setTimeout(look, 100); return; }
+    const last = items[items.length - 1];
+    last.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    last.classList.add('just-added');
+  };
+  setTimeout(look, 150);
+}
 
 export function foodSheet(food, today) {
   const saved = (food.id && food.source && data.savedFoods().find((f) => f.id === food.id)) || data.findSaved(food);
@@ -61,9 +75,11 @@ export function foodSheet(food, today) {
       if (!mealSel.value) { toast('Choose a meal first'); mealSel.focus(); return; }
       state.meal = null;
       clearSearch();
-      await data.logFood(today, sized(), +amount.value, unitSel.value, mealSel.value);
-      s.close();
-      toast(`Added to ${mealName(mealSel.value)}`);
+      const meal = mealSel.value;
+      await data.logFood(today, sized(), +amount.value, unitSel.value, meal);
+      closeAllSheets(); // Frequently used closes too
+      toast(`Added to ${mealName(meal)}`);
+      showLatest(meal);
     }, 'primary block'),
     saveBtn,
   ]);

@@ -3,7 +3,9 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
-## 3.83.0 (ME patch 24)
+## 3.84.0 (ME patch 24)
+- 3.84.0 Adding a food closes Frequently used and takes you to that meal in your log, with the new entry lit up.
+- 3.83.1 Logo: "ME" removed; just the walnut dumbbell.
 - 3.83.0 405 quotes for the workout summary, shuffled; none repeats until every one has been used.
 - 3.82.0 Workout summary is a pop-up: workout number, exercises, total sets, rep goals reached (green numbers), a quote in rust. "I am stronger." logs the workout and goes Home. Weight lifted, XP and "ready to go up" removed.
 - 3.81.1 Magic: one light on the card only; none on Morning or Night.

@@ -586,3 +586,7 @@ label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white
 .sum-who { display: block; font-style: normal; font-size: 14px; margin-top: 4px; }
 .celebrate.summary .btn.primary { background: #6b4a2b; color: #fff; }
 .celebrate.summary { background: #140e08; }
+
+/* The food you just added lights up for a moment */
+.meal-item.just-added { animation: justAdded 2.4s ease-out; }
+@keyframes justAdded { 0%, 40% { background: rgba(47, 107, 58, 0.25); } 100% { background: transparent; } }
