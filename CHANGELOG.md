@@ -3,6 +3,16 @@
 Version numbers are MAJOR.MINOR.PATCH: MAJOR = overhaul that breaks old data or setup,
 MINOR = new feature, PATCH = bug fix or small tweak.
 
+## 3.92.0 (ME patch 27)
+- "Numbers wrong? Fix to match label" on every food: type one serving off the package once; saved for that barcode, so every future scan is right.
+- Undid the per-serving cross-check from 3.90.0 (Open Food Facts works its per-serving numbers out from the same per-100 g values, so it made things worse). "1 can" servings still use the can's weight.
+- Fixed "whole item" showing all zeros when the serving is the whole can.
+- Settings: Your details folds once targets are calculated; Daily targets card removed; Magic, Rep goal, Backup, Export, Voice cheers and Theme folded; rest timer row reads normally and only shows the length when it's on; the version is a big tap target for checking updates.
+- Food tab: Add food first, then your log, then Calories remaining (Total − Food = Remaining, with "Total = goal + exercise" underneath), then Fuel for muscle growth. "Fri, Nov 20 lift: 26 min, about 101 cal burned (estimate)."
+- Home food card: no date; Add food is a centred button; the "what next" line is centred.
+- Bars over the window turn warm gold instead of red.
+- Workout time: a gap over 10 minutes between sets counts as a break.
+
 ## 3.91.0 (ME patch 26)
 - 3.91.0 A plain "what to eat next" line on Home and Food (protein first, then carbs; "calories done" once you're there).
 - 3.90.3 Food bars are forest green; calories turn red past 5% over, carbs and fat past 10%; protein never turns red.

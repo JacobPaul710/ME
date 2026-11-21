@@ -40,6 +40,17 @@ async function shareFile(file, title) {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+// Folded cards: tap the title to open or close. Stays the way you left it while you're in Settings.
+const openFolds = new Set();
+function fold(id, title, startOpen, ...kids) {
+  const isOpen = openFolds.has(id) || (startOpen && !openFolds.has(`closed:${id}`));
+  const d = h('details', { class: 'card fold', ...(isOpen ? { open: true } : {}) },
+    h('summary', null, h('h2', { class: 'card-title grow' }, title), h('span', { class: 'fold-arrow', 'aria-hidden': 'true' }, '▾')), ...kids);
+  let was = isOpen; // the browser also fires "toggle" when a card is built open: only count real taps
+  d.addEventListener('toggle', () => { if (d.open === was) return; was = d.open; if (d.open) { openFolds.add(id); openFolds.delete(`closed:${id}`); } else { openFolds.delete(id); openFolds.add(`closed:${id}`); } });
+  return d;
+}
+
 function backupCard() {
   const pick = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-label': 'Backup file' });
   pick.addEventListener('change', async () => {
@@ -53,7 +64,7 @@ function backupCard() {
     } catch { toast("That file isn't an ME backup"); }
     pick.value = '';
   });
-  return card(h('h2', { class: 'card-title' }, 'Backup'),
+  return fold('backup', 'Backup', false,
     h('p', { class: 'sub', style: 'margin:0' }, 'Updates never erase your data: it stays on your phone and in your account. A backup is an extra copy you can keep in Files.'),
     button('Download backup', () => shareFile(new File([JSON.stringify({ app: 'ME', version: APP_VERSION, date: iso(), records: store.backup() })], `me-backup-${iso()}.json`, { type: 'application/json' }), 'ME backup'), 'block'),
     button('Restore from backup', () => pick.click(), 'block'), pick);
@@ -140,7 +151,7 @@ function avatarCard() {
 // Pick the level card background. Saves as soon as you tap one.
 function themePicker(current) {
   const L = data.skillInfo(todayIso());
-  return card(h('h2', { class: 'card-title' }, 'Level card theme'),
+  return fold('theme', 'Level card theme', false,
     h('div', { class: 'stack' }, LEVEL_THEMES.map(([id, label]) =>
       h('button', { type: 'button', class: 'theme-option', 'aria-pressed': id === current ? 'true' : 'false', onClick: async () => {
         await data.setLevelTheme(id);
@@ -190,7 +201,7 @@ function addSupplementSheet() {
 
 function supplementsCard() {
   const list = data.supplements();
-  return card(h('h2', { class: 'card-title' }, 'Magic (supplements and medications)'),
+  return fold('magic', 'Magic (supplements and medications)', false,
     h('p', { class: 'sub', style: 'margin:0' }, 'Supplements and medications. Check them off on the Magic card on Today; each one levels up Magic.'),
     list.length ? h('div', { class: 'list' }, list.map((x) => h('button', { type: 'button', class: 'item item-main', 'aria-label': `Edit ${x.name}`, onClick: () => editSupplement(x) },
       h('span', { class: 'item-name' }, x.name), h('span', { class: 'sub' }, [x.dose, { morning: 'Morning', night: 'Night', both: 'Morning and night' }[x.when || (+x.times > 1 ? 'both' : 'morning')], x.optional ? 'optional' : null, x.timerHours ? `${x.timerHours} h timer` : null].filter(Boolean).join(' · '))))) : null,
@@ -202,10 +213,14 @@ function restCard() {
   const rest = h('select', { 'aria-label': 'Rest between sets' },
     REST_CHOICES.map(([sec, label]) => h('option', { value: String(sec), selected: sec === (data.settings().restSeconds || 90) }, label)));
   rest.addEventListener('change', () => data.saveSettings({ ...data.settings(), restSeconds: +rest.value }));
-  const on = h('input', { type: 'checkbox', checked: !!data.settings().restOn, 'aria-label': 'Rest timer on' });
-  on.addEventListener('change', () => data.saveSettings({ ...data.settings(), restOn: on.checked }));
-  return card(h('h2', { class: 'card-title' }, 'Rest between sets'),
-    h('label', { class: 'row check' }, on, h('span', null, 'Rest timer on (it only alerts inside the app)')), rest);
+  const on = h('input', { type: 'checkbox', class: 'check', checked: !!data.settings().restOn });
+  // Folded unless the timer is on: then you pick how long.
+  const more = h('div', { class: 'stack tight' }, field('Rest between sets', rest), h('p', { class: 'sub', style: 'margin:0' }, 'It only alerts while the app is open.'));
+  const show = () => { more.hidden = !on.checked; };
+  on.addEventListener('change', () => { show(); data.saveSettings({ ...data.settings(), restOn: on.checked }); });
+  show();
+  return card(h('h2', { class: 'card-title' }, 'Rest timer'),
+    h('label', { class: 'check-row' }, on, h('span', null, 'Rest timer on')), more);
 }
 
 export function renderSettings(root, ctx) {
@@ -258,7 +273,8 @@ export function renderSettings(root, ctx) {
   const user = session()?.user;
   root.append(
     header('Settings', null, ctx.closeMenu ? h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close menu', onClick: ctx.closeMenu }, '✕') : null),
-    card(h('h2', { class: 'card-title' }, 'Your details'),
+    // Your details: open until your targets are calculated, then folded so nothing changes by accident.
+    fold('details', 'Your details', !s.targets.cal,
       h('div', { class: 'grid2' }, field('Sex', sexSel), field('Birthday', bday)),
       h('div', { class: 'grid2' }, field('Height (feet)', ft), field('Height (inches)', inch)),
       h('div', { class: 'grid2' }, field('Weight (lb)', wt), field('Goal weight (lb)', gw)),
@@ -267,19 +283,17 @@ export function renderSettings(root, ctx) {
       field('Activity outside the gym', act),
       h('p', { class: 'sub', style: 'margin:0' }, 'Workouts are added on the days you train, so leave them out of activity.'),
       button('Calculate my targets', calc, 'block')),
-    card(h('h2', { class: 'card-title' }, 'Daily targets'),
-      h('div', { class: 'grid2' }, MACROS.map((m) => field(m.label + (m.unit ? ` (${m.unit})` : ''), inputs[m.key])))),
     supplementsCard(),
     restCard(),
-    card(h('h2', { class: 'card-title' }, 'Rep goal'),
+    fold('rep', 'Rep goal', false,
       field('Sessions in a row before the rep goal goes up', sessions)),
     backupCard(),
-    card(h('h2', { class: 'card-title' }, 'Export (CSV)'),
+    fold('export', 'Export (CSV)', false,
       h('div', { class: 'grid2' }, Object.entries(EXPORTS).map(([k, [label]]) => button(label, () => exportCSV(k))))),
     card(h('div', { class: 'row' }, h('h2', { class: 'card-title grow' }, 'Account'), ctx.syncBadge()),
       h('div', { class: 'sub' }, user ? `Signed in as ${user.email}` : ''),
       button('Sign out', () => confirmSheet('Sign out?', 'Anything not yet synced stays on this phone and syncs when you sign in again.', 'Sign out', ctx.signOut), 'block')),
-    card(h('h2', { class: 'card-title' }, 'Voice cheers'),
+    fold('voice', 'Voice cheers', false,
       h('label', { class: 'check-row' },
         h('input', { type: 'checkbox', class: 'check', checked: s.voiceCheers !== false, onChange: async (e) => {
           await data.saveSettings({ ...data.settings(), voiceCheers: e.target.checked });
@@ -290,7 +304,6 @@ export function renderSettings(root, ctx) {
       button('Preview sounds and messages', previewSheet, 'block')),
     avatarCard(),
     themePicker(s.levelTheme),
-    h('p', { class: 'sub center version' }, `Version ${APP_VERSION}`),
-    // Invisible: tap the space just under the version number to check for updates.
-    h('button', { type: 'button', class: 'ghost-tap', 'aria-label': 'Check for updates', onClick: checkForUpdate }));
+    // Tap the version (a big, easy target) to check for updates.
+    h('button', { type: 'button', class: 'version-tap', 'aria-label': `Version ${APP_VERSION}. Check for updates`, onClick: checkForUpdate }, `Version ${APP_VERSION}`));
 }

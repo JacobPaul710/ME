@@ -2,7 +2,7 @@ import { h, fmt, svg } from './dom.js';
 import { skillUp } from '../celebrations.js';
 import { ICONS } from './character.js';
 import { button, card, header, sheet, field, numberInput, toast, segmented, empty, confirmSheet, light, closeAllSheets } from './components.js';
-import { nice, iso, addDays } from '../logic/dates.js';
+import { nice, iso, addDays, parse } from '../logic/dates.js';
 import { MACROS, units, macrosFor, defaultAmount } from '../logic/nutrition.js';
 import { search, norm } from '../logic/foods.js';
 import { usdaFoods, searchOnline, lookupBarcode } from '../core/foodapi.js';
@@ -41,13 +41,15 @@ function showLatest(meal) {
 export function foodSheet(food, today) {
   const saved = (food.id && food.source && data.savedFoods().find((f) => f.id === food.id)) || data.findSaved(food);
   let base = saved || food;
+  const fix = data.labelFix(food);
+  if (fix) base = { ...base, cal: fix.cal, p: fix.p, c: fix.c, f: fix.f, baseGrams: 100, baseLabel: '100 g', servingGrams: fix.servingGrams, servingLabel: fix.servingLabel, packageGrams: fix.packageGrams, fixedByYou: true };
   if (base.baseGrams && !base.packageGrams && data.foodSize(base)) base = { ...base, packageGrams: data.foodSize(base) };
   const d = defaultAmount(base);
   const amount = numberInput(d.amount, { 'aria-label': 'Amount' });
   // Every weighed food can be logged as the whole item; if its size isn't known, you type it once.
   const opts = units(base);
   // Size unknown: the whole item is taken as one serving, so you never have to type a weight.
-  if (base.baseGrams && base.servingGrams && !opts.some((u) => u.id === 'package')) { base = { ...base, packageGrams: base.servingGrams }; opts.splice(1, 0, { id: 'package', label: `whole item (${Math.round(base.servingGrams)} g)`, grams: base.servingGrams }); }
+  if (base.baseGrams && base.servingGrams && !base.packageGrams && !opts.some((u) => u.id === 'package')) { base = { ...base, packageGrams: base.servingGrams }; opts.splice(1, 0, { id: 'package', label: `whole item (${Math.round(base.servingGrams)} g)`, grams: base.servingGrams }); }
   const unitSel = h('select', { 'aria-label': 'Unit' }, opts.map((u) => h('option', { value: u.id, selected: u.id === d.unit }, u.label)));
   const sized = () => base;
   const mealSel = mealSelect(state.meal);
@@ -60,7 +62,7 @@ export function foodSheet(food, today) {
   const perLabel = base.baseGrams ? 'Per 100 g' : `Per ${base.baseLabel}`;
   const body = h('div', { class: 'stack' },
     base.brand ? h('div', { class: 'sub' }, base.brand) : null,
-    base.fixedMixup ? h('p', { class: 'note-warn' }, "This entry's numbers didn't agree with each other, so the label's per-serving numbers are used. Worth a glance at the package.") : null,
+    base.fixedByYou ? h('div', { class: 'sub' }, '✓ Using the numbers you entered from the label') : null,
     h('div', { class: 'sub' }, base.fromLabel && base.servingGrams ? `Per serving, from the label: ${macroText(macrosFor(base, 1, 'serving'))}` : `${perLabel}: ${macroText(base)}`),
     h('div', { class: 'grid2' }, field('Amount', amount), field('Unit', unitSel)),
     field('Meal', mealSel),
@@ -83,6 +85,36 @@ export function foodSheet(food, today) {
       showLatest(meal);
     }, 'primary block'),
     saveBtn,
+    button(base.fixedByYou ? 'Edit label numbers' : 'Numbers wrong? Fix to match label', () => { s.close(); labelFixSheet(food, base, today); }, 'ghost block'),
+  ]);
+}
+
+// Type one serving straight off the package once; saved for this barcode from then on.
+function labelFixSheet(food, base, today) {
+  const per = base.servingGrams ? macrosFor(base, 1, 'serving') : { cal: '', p: '', c: '', f: '' };
+  const nameIn = h('input', { type: 'text', value: String(base.servingLabel || '1 serving').replace(/\s*\([^)]*\)\s*$/, ''), 'aria-label': 'Serving size name' });
+  const grams = numberInput(base.servingGrams ? Math.round(base.servingGrams) : '', { 'aria-label': 'Serving size in grams' });
+  const per1 = (base.packageGrams && base.servingGrams) ? Math.round((base.packageGrams / base.servingGrams) * 10) / 10 : 1;
+  const servings = numberInput(per1, { 'aria-label': 'Servings per container' });
+  const cal = numberInput(per.cal, { 'aria-label': 'Calories' }), p = numberInput(per.p, { 'aria-label': 'Protein' }), c = numberInput(per.c, { 'aria-label': 'Carbs' }), f = numberInput(per.f, { 'aria-label': 'Fat' });
+  const s = sheet('Fix to match label', h('div', { class: 'stack' },
+    h('p', { class: 'sub', style: 'margin:0' }, 'Copy one serving from the Nutrition Facts on the package. It\'s saved for this food, so you only do it once.'),
+    h('div', { class: 'grid2' }, field('Serving size', nameIn), field('Serving (grams)', grams)),
+    field('Servings per container', servings),
+    h('div', { class: 'grid2' }, field('Calories', cal), field('Protein (g)', p)),
+    h('div', { class: 'grid2' }, field('Carbs (g)', c), field('Fat (g)', f))), [
+    button('Save', async () => {
+      const g = +grams.value;
+      if (!(g > 0)) { toast('Enter the serving weight in grams (it\'s in brackets next to the serving size)'); grams.focus(); return; }
+      if (!(+cal.value >= 0) || cal.value === '') { toast('Enter the calories'); cal.focus(); return; }
+      const k = 100 / g, r2 = (x) => Math.round(x * 100) / 100;
+      const n = +servings.value > 0 ? +servings.value : 1;
+      await data.saveLabelFix(food, { cal: r2(+cal.value * k), p: r2((+p.value || 0) * k), c: r2((+c.value || 0) * k), f: r2((+f.value || 0) * k),
+        servingGrams: g, servingLabel: `${nameIn.value.trim() || '1 serving'} (${Math.round(g)} g)`, packageGrams: n > 1 ? Math.round(g * n) : null });
+      s.close();
+      toast('Saved. This food will use your label numbers from now on.');
+      foodSheet(food, today);
+    }, 'primary block'),
   ]);
 }
 
@@ -282,13 +314,13 @@ function summaryCard(date) {
   return h('div', { class: 'stack' }, card(
     h('h2', { class: 'card-title' }, 'Calories remaining'),
     tg.cal
-      ? h('div', { class: 'eq' }, col(fmt(tg.cal), 'Goal'),
-        burn.kcal ? [h('span', { class: 'eq-op' }, '+'), col(fmt(burn.kcal), 'Exercise')] : null,
+      ? [h('div', { class: 'eq' }, col(fmt(goal), 'Total'),
         h('span', { class: 'eq-op' }, '−'), col(fmt(t.cal), 'Food'), h('span', { class: 'eq-op' }, '='),
-        col(fmt(goal - t.cal), 'Remaining', t.cal > goal * 1.05 ? 'over' : 'left'))
+        col(fmt(goal - t.cal), 'Remaining', t.cal > goal * 1.05 ? 'over' : 'left')),
+        h('p', { class: 'sub eq-break' }, burn.kcal ? `Total = goal ${fmt(tg.cal)} + exercise ${fmt(burn.kcal)}` : `Total = goal ${fmt(tg.cal)} (no lifting yet today)`)]
       : h('div', { class: 'eq' }, col(fmt(t.cal), 'Food'), burn.kcal ? col(fmt(burn.kcal), 'Exercise') : null,
         h('p', { class: 'sub', style: 'margin:0' }, 'Set your targets in Settings to see what\'s left.')),
-    burn.kcal ? h('p', { class: 'sub', style: 'margin:0' }, `Lifting today: about ${burn.minutes} min, ${fmt(burn.kcal)} cal burned (estimate).`) : null,
+    burn.kcal ? h('p', { class: 'sub', style: 'margin:0' }, `${parse(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} lift: ${burn.minutes} min, about ${fmt(burn.kcal)} cal burned (estimate).`) : null,
     next ? h('p', { class: 'next-step' }, next) : null,
     macro('p', 'Protein', t.p, kcalP), macro('c', 'Carbs', t.c, kcalC), macro('f', 'Fat', t.f, kcalF)),
   notes.length ? h('section', { class: 'card fuel', 'aria-label': 'Training day check' },
@@ -338,8 +370,8 @@ export function renderFood(root, ctx) {
   root.append(...[
     past ? header(`Food · ${nice(today)}`, 'Editing a past day', button('Back to today', () => ctx.go('#food'), 'ghost'))
       : header('Food', nice(today), button('Other day', () => otherDaySheet(ctx), 'ghost')),
-    summaryCard(today),
     addSection,
     past ? mealBreakdown(today, { editable: true, onAdd: (meal) => { state.meal = meal; ctx.rerender(); document.querySelector('#add-food input[type="search"]')?.focus(); } }) : loggedToday(today),
+    summaryCard(today), // Calories remaining, then Fuel for muscle growth at the bottom
     ].filter(Boolean));
 }

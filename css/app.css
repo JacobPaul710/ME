@@ -601,3 +601,24 @@ label.row.check span { flex: 1; min-width: 0; writing-mode: horizontal-tb; white
 .bar.macro-bar > i, html[data-theme] .bar.macro-bar > i { background: #2f6b3a; }
 .bar.macro-bar.red > i, html[data-theme] .bar.macro-bar.red > i { background: #b3261e; }
 .next-step { margin: 4px 0 0; font-weight: 700; color: var(--text); }
+
+/* Folded Settings cards */
+details.fold > summary { display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; min-height: 44px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary .card-title { margin: 0; }
+details.fold .fold-arrow { font-size: 20px; color: var(--muted); transition: transform .15s; }
+details.fold[open] .fold-arrow { transform: rotate(180deg); }
+details.fold[open] > summary { margin-bottom: 10px; }
+details.fold[open] { display: flex; flex-direction: column; gap: 10px; }
+.check-row .check { width: 26px; height: 26px; min-height: 0; flex: none; margin: 0; }
+.check-row span { flex: 1; min-width: 0; color: var(--text); }
+/* Version: tap it to check for updates */
+.version-tap { display: block; width: 100%; min-height: 64px; margin: 4px 0 16px; background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* Over the window: warm gold, not red */
+.bar.macro-bar.red > i, html[data-theme] .bar.macro-bar.red > i { background: #d4a017; }
+.next-step { text-align: center; }
+.eq-break { margin: 0; text-align: center; }
+.food-head .center-btn { display: flex; justify-content: center; }
+.food-head .add-food-btn { min-width: 170px; }
+.food-head .dot-spacer { width: 18px; flex: none; }

@@ -110,7 +110,7 @@ function foodCard(today, go) {
   const met = (+tg.p > 0 || +tgt.cal > 0) && (!+tg.p || t.p >= +tg.p) && (!+tgt.cal || t.cal >= +tgt.cal * 0.9);
   const next = data.nextStep(today);
   return card(
-    h('div', { class: 'row' }, statusDot(met), h('h2', { class: 'card-title grow' }, parse(today).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })), button('Add food', () => go('#food'), 'ghost')),
+    h('div', { class: 'row food-head' }, statusDot(met), h('div', { class: 'grow center-btn' }, button('Add food', () => go('#food'), 'primary add-food-btn')), h('span', { class: 'dot-spacer', 'aria-hidden': 'true' })),
     MACROS.map((m) => progressRow(m.label, t[m.key], tgt[m.key], m.unit, data.OVER_WINDOW[m.key])),
     next ? h('p', { class: 'next-step' }, next) : null);
 }

@@ -219,6 +219,12 @@ export function burned(date) {
   return { minutes, kcal: workoutCalories(minutes, bodyweight()) };
 }
 // One calorie goal everywhere (Home and Food): your daily goal plus today's lifting.
+// "Fix to match label": your own label numbers for a food, saved by barcode (or name + brand)
+// so every future scan or search of it uses them.
+const fixKey = (f) => `labelfix:${f.barcode ? String(f.barcode).replace(/\D/g, '').replace(/^0+/, '') : `${String(f.name || '').toLowerCase()}|${String(f.brand || '').toLowerCase()}`}`;
+export const labelFix = (f) => store.get(fixKey(f));
+export function saveLabelFix(f, fix) { return store.put('labelfix', fixKey(f), fix); }
+
 export function calorieGoal(date) {
   const tg = settings().targets;
   return tg.cal ? +tg.cal + burned(date).kcal : null;
